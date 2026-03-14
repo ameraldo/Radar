@@ -1,15 +1,17 @@
 # Radar
 
-Radar is an Android application that utilizes location services and modern Android development practices.
+Radar is an Android application for recording GPS points to create routes, saving them, and navigating back.
+Designed for outdoor use where traditional navigation (Google/Apple Maps) is unavailable due to poor cellular reception.
 
 ## Features
 
-- Location-based functionality using FINE and COARSE location permissions
-- Built with Jetpack Compose for modern declarative UI
-- Room database for local data persistence
-- Dependency injection with Hilt
-- Material Design 3 theming
-- Adaptive navigation suite
+- Route recording - capture GPS points as you move
+- Route saving - store routes locally for later use
+- Route following - navigate back along saved routes
+- Compass heading - uses device accelerometer + magnetometer
+- GPS satellite tracking - see satellite visibility
+- Picture-in-Picture mode - keeps radar visible while multitasking
+- Works fully offline - GPS only, no internet required
 
 ## Technical Details
 
@@ -21,6 +23,16 @@ Radar is an Android application that utilizes location services and modern Andro
 - **UI Framework**: Jetpack Compose
 - **Database**: Room
 - **Location Services**: Google Play Services Location
+- **Sensors**: Accelerometer + Magnetometer (compass heading)
+- **Satellite Tracking**: GPS satellite visibility display
+
+## Screenshots
+<p float="left">
+  <img src="screenshots/home.jpeg" width="200"  alt="home"/>
+  <img src="screenshots/radar_record.jpeg" width="200" alt="radar_record"/>
+  <img src="screenshots/radar_follow.jpeg" width="200" alt="radar_follow"/>
+  <img src="screenshots/routes.jpeg" width="200" alt="routes"/>
+</p>
 
 ## Project Structure
 
@@ -39,7 +51,7 @@ Radar/
 ├── build.gradle.kts                         # Project-level build config
 ├── settings.gradle.kts                      # Settings and repositories
 ├── gradle.properties                        # Gradle properties
-└── README.MD                                # This file
+└── README.md                                # This file
 ```
 
 ## Dependencies
@@ -69,10 +81,11 @@ Key libraries used in this project:
 ## Permissions
 
 The app requests the following permissions at runtime:
-- `ACCESS_FINE_LOCATION`
-- `ACCESS_COARSE_LOCATION`
+- `ACCESS_FINE_LOCATION`  
+- `ACCESS_COARSE_LOCATION`  
 
-These are required for the location-based features of the application.
+These are required for the location-based features of the application.  
+This app works entirely offline using only GPS - no internet or cellular connection required.  
 
 ## Building
 
