@@ -12,5 +12,5 @@ enum class AppDestinations(
 ) {
     HOME("Home", Icons.Default.SatelliteAlt),
     RADAR("Radar", Icons.Default.Radar),
-    ROUTES("Locations", Icons.Default.Directions)
+    ROUTES("Routes", Icons.Default.Directions)
 }
