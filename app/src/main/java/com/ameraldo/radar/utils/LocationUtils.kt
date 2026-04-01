@@ -1,5 +1,6 @@
 package com.ameraldo.radar.utils
 
+import com.ameraldo.radar.data.DistanceUnits
 import com.ameraldo.radar.data.RecordedPointEntity
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -16,11 +17,12 @@ data class PolarPoint(
 fun toPolarPoints(
     currentLat: Double, currentLon: Double,
     points: List<RecordedPointEntity>,
-    radarRangeMeters: Float = 100f
+    radarRange: Float,
+    radarDistanceUnits: DistanceUnits
 ): List<PolarPoint> {
     return points.map { point ->
         toPolarPoint(currentLat, currentLon, point.latitude, point.longitude,
-            radarRangeMeters)
+            radarRange, radarDistanceUnits)
     }
 }
 
@@ -41,14 +43,20 @@ fun calculatePointsDistance(
  * Converts two lat/lon coordinates into a polar point
  * relative to the current position, for display on the radar.
  *
- * @param radarRangeMeters the real-world distance the outer radar ring represents
+ * @param radarRange the real-world distance the outer radar ring represents
  */
 private fun toPolarPoint(
     currentLat: Double, currentLon: Double,
     targetLat: Double,  targetLon: Double,
-    radarRangeMeters: Float = 100f   // outer ring = 100m by default
+    radarRange: Float,
+    radarDistanceUnits: DistanceUnits
 ): PolarPoint {
     val earthRadius = 6371000.0 // meters
+
+    val radarRangeMeters = (
+            if (radarDistanceUnits == DistanceUnits.METRIC) radarRange
+            else radarRange / 3.28084 // convert feet to meters
+    ) as Float
 
     val lat1 = Math.toRadians(currentLat)
     val lat2 = Math.toRadians(targetLat)

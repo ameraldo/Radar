@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.SatelliteAlt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class AppDestinations(
@@ -12,5 +13,6 @@ enum class AppDestinations(
 ) {
     HOME("Home", Icons.Default.SatelliteAlt),
     RADAR("Radar", Icons.Default.Radar),
-    ROUTES("Routes", Icons.Default.Directions)
+    ROUTES("Routes", Icons.Default.Directions),
+    SETTINGS("Settings", Icons.Default.Settings)
 }

@@ -27,6 +27,7 @@ import com.ameraldo.radar.ui.components.RadarView
 import com.ameraldo.radar.utils.toPolarPoints
 import com.ameraldo.radar.viewmodel.LocationViewModel
 import com.ameraldo.radar.viewmodel.SensorViewModel
+import com.ameraldo.radar.viewmodel.SettingsViewModel
 import kotlin.collections.emptyList
 
 import com.ameraldo.radar.viewmodel.UIStateViewModel
@@ -37,37 +38,45 @@ fun RadarScreen(
     modifier: Modifier = Modifier,
     locationViewModel: LocationViewModel,
     sensorViewModel: SensorViewModel,
+    settingsViewModel: SettingsViewModel,
     uiStateViewModel: UIStateViewModel,
     onFollowingComplete: () -> Unit,
     onRequestPermission: () -> Unit
 ) {
     val headingDegrees           by sensorViewModel.headingDegrees.collectAsState()
+
     val locationState            by locationViewModel.locationState.collectAsState()
     val isRecording              by locationViewModel.isRecording.collectAsState()
     val isFollowing              by locationViewModel.isFollowing.collectAsState()
     val currentRoutePoints       by locationViewModel.currentRoutePoints.collectAsState()
     val followingRemainingPoints by locationViewModel.followingRemainingPoints.collectAsState()
+
+    val radarDistanceUnits       by settingsViewModel.distanceUnits.collectAsState()
+    val radarMaxRange            by settingsViewModel.maxRange.collectAsState()
+    val selectedRange            by settingsViewModel.selectedRange.collectAsState()
+
     val isInPiPMode              by uiStateViewModel.isInPiPMode.collectAsState()
 
-    var radarRangeMeters by rememberSaveable { mutableFloatStateOf(100f) }
+    val radarRangeList = remember(radarMaxRange) { generateRangeList(radarMaxRange) }
+    val radarRange = selectedRange.coerceIn(radarRangeList.min(), radarRangeList.max())
 
     // Convert recorded points to polar coordinates relative to current position
     val recordedPolarPoints = remember(currentRoutePoints, locationState.latitude,
-        locationState.longitude, radarRangeMeters) {
+        locationState.longitude, radarRange, radarDistanceUnits) {
         val lat = locationState.latitude
         val lon = locationState.longitude
         if (lat != null && lon != null) {
-            toPolarPoints(lat, lon, currentRoutePoints, radarRangeMeters)
+            toPolarPoints(lat, lon, currentRoutePoints, radarRange, radarDistanceUnits)
         } else emptyList()
     }
 
     // Convert following points to polar coordinates relative to current position
     val followingPolarPoints = remember(followingRemainingPoints, locationState.latitude,
-                                        locationState.longitude, radarRangeMeters) {
+                                        locationState.longitude, radarRange, radarDistanceUnits) {
         val lat = locationState.latitude
         val lon = locationState.longitude
         if (lat != null && lon != null && followingRemainingPoints.isNotEmpty()) {
-            toPolarPoints(lat, lon, followingRemainingPoints, radarRangeMeters)
+            toPolarPoints(lat, lon, followingRemainingPoints, radarRange, radarDistanceUnits)
         } else emptyList()
     }
 
@@ -83,7 +92,8 @@ fun RadarScreen(
             nextPointToFollow = if (isFollowing && followingPolarPoints.isNotEmpty())
                 followingPolarPoints.firstOrNull()
             else null,
-            radarRangeMeters = radarRangeMeters
+            radarRange = radarRange,
+            radarDistanceUnits = radarDistanceUnits
         )
     } else {
         val windowInfo = LocalWindowInfo.current
@@ -108,7 +118,8 @@ fun RadarScreen(
                     followingPolarPoints.firstOrNull()
                 else
                     null,
-                radarRangeMeters = radarRangeMeters
+                radarRange = radarRange,
+                radarDistanceUnits = radarDistanceUnits
             )
             Column(
                 modifier = Modifier
@@ -123,12 +134,21 @@ fun RadarScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 RangeSelector(
-                    rangeMeters = radarRangeMeters,
-                    onRangeChange = { radarRangeMeters = it }
+                    selectedRange = radarRange,
+                    rangeList = radarRangeList,
+                    distanceUnits = radarDistanceUnits,
+                    onRangeChange = { settingsViewModel.updateSelectedRange(it) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 RouteCard(locationViewModel, isRecording, isFollowing, onFollowingComplete)
             }
         }
     }
+}
+
+private fun generateRangeList(maximum: Int): List<Float> {
+    val length = 4;
+    val divider = 4;
+    val step = maximum / divider
+    return (1..length).map { i -> step * i * 1f }
 }

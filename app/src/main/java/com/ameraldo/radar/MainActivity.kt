@@ -24,7 +24,6 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     private val locationViewModel: LocationViewModel by viewModels()
     private val sensorViewModel: SensorViewModel by viewModels()
-
     private val uiStateViewModel: UIStateViewModel by viewModels()
 
     private var isEnteringPiP = false

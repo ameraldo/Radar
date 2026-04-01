@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.core.graphics.withSave
+import com.ameraldo.radar.data.DistanceUnits
 import com.ameraldo.radar.ui.theme.amber500Color
 import com.ameraldo.radar.ui.theme.green500Color
 import com.ameraldo.radar.ui.theme.red500Color
@@ -65,7 +66,8 @@ fun RadarView(
     satelliteBlips: List<SatelliteBlip>? = null,
     recordedPoints: List<PolarPoint> = emptyList(),
     nextPointToFollow: PolarPoint? = null,
-    radarRangeMeters: Float = 100f
+    radarRange: Float = 100f,
+    radarDistanceUnits: DistanceUnits = DistanceUnits.METRIC
 ) {
     // Color palette (Inherited by theme)
     val backgroundColor     = MaterialTheme.colorScheme.background
@@ -157,7 +159,7 @@ fun RadarView(
 
         // 2. Concentric rings — spaced by radarR/4, repeating outward to fullR
         val ringSpacingPx = radarR / 4f
-        var ringDistanceMeters = radarRangeMeters / 4f
+        var ringDistance = radarRange / 4f
         var r = ringSpacingPx
         while (r <= fullR) {
             drawCircle(
@@ -173,10 +175,16 @@ fun RadarView(
              */
             if (r <= radarR * 0.75f && satelliteBlips == null) {
                 // Set label
-                val label = if (ringDistanceMeters >= 1000f)
-                    "${"%.1f".format(ringDistanceMeters / 1000f)}km"
-                else
-                    "${"%.1f".format(ringDistanceMeters)}m"
+                val label = if (radarDistanceUnits == DistanceUnits.METRIC)
+                                if (ringDistance >= 1000f)
+                                    "${"%.1f".format(ringDistance / 1000f)}km"
+                                else
+                                    "${"%.1f".format(ringDistance)}m"
+                            else
+                                if (ringDistance >= 5280f)
+                                    "${"%.1f".format(ringDistance / 5280f)}mi"
+                                else
+                                    "${"%.1f".format(ringDistance)}ft"
                 // Set label angle
                 val angleDeg = 45f // Draw text at 45°
                 val angleRad = Math.toRadians(angleDeg.toDouble())
@@ -200,7 +208,7 @@ fun RadarView(
             }
 
             r += ringSpacingPx
-            ringDistanceMeters += radarRangeMeters / 4f
+            ringDistance += radarRange / 4f
         }
 
         // 3. Polar grid lines every 30°

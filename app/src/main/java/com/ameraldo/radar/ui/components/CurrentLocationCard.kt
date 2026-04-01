@@ -171,7 +171,6 @@ fun CurrentLocationCard(
                 }
             }
         }
-
     }
 }
 

@@ -18,9 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -31,21 +29,24 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ameraldo.radar.data.AppSettings
 import com.ameraldo.radar.navigation.AppDestinations
 import com.ameraldo.radar.ui.screens.home.HomeScreen
 import com.ameraldo.radar.ui.screens.radar.RadarScreen
 import com.ameraldo.radar.ui.screens.routes.RoutesScreen
+import com.ameraldo.radar.ui.screens.settings.SettingsScreen
 import com.ameraldo.radar.viewmodel.LocationViewModel
 import com.ameraldo.radar.viewmodel.RouteViewModel
 import com.ameraldo.radar.viewmodel.SensorViewModel
+import com.ameraldo.radar.viewmodel.SettingsViewModel
 import com.ameraldo.radar.viewmodel.UIStateViewModel
 
 @PreviewScreenSizes
 @Composable
 fun RadarApp(
     locationViewModel: LocationViewModel = viewModel(),
-    sensorViewModel: SensorViewModel = viewModel(),
     routesViewModel: RouteViewModel = viewModel(),
+    sensorViewModel: SensorViewModel = viewModel(),
     uiStateViewModel: UIStateViewModel = viewModel()
 ) {
     val isRecording by locationViewModel.isRecording.collectAsState()
@@ -54,6 +55,9 @@ fun RadarApp(
     val context        = LocalContext.current
     val activity       = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    val appSettings = remember { AppSettings(context) }
+    val settingsViewModel = remember { SettingsViewModel(appSettings) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -140,6 +144,7 @@ fun RadarApp(
                     modifier            = Modifier.padding(innerPadding),
                     locationViewModel   = locationViewModel,
                     sensorViewModel     = sensorViewModel,
+                    settingsViewModel   = settingsViewModel,
                     uiStateViewModel    = uiStateViewModel,
                     onFollowingComplete = { locationViewModel.stopFollowing() },
                     onRequestPermission = onRequestPermission
@@ -152,6 +157,10 @@ fun RadarApp(
                             uiStateViewModel.updateDestination(AppDestinations.RADAR)
                         })
                     }
+                )
+                AppDestinations.SETTINGS -> SettingsScreen(
+                    modifier            = Modifier.padding(innerPadding),
+                    settingsViewModel   = settingsViewModel
                 )
             }
         }
