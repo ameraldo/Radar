@@ -62,4 +62,11 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
             appSettings.setMaxRange(defaultRange)
         }
     }
+
+    fun generateRangeList(maximum: Int): List<Float> {
+        val length = 4
+        val divider = 4
+        val step = maximum / divider
+        return (1..length).map { i -> step * i * 1f }
+    }
 }

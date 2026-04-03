@@ -1,6 +1,5 @@
 package com.ameraldo.radar.viewmodel
 
-import android.Manifest
 import android.app.Application
 import android.location.Location
 import androidx.lifecycle.AndroidViewModel
@@ -13,8 +12,6 @@ import com.google.android.gms.location.Priority
 import android.location.LocationManager
 import android.location.GnssStatus
 import android.content.Context
-import android.content.pm.PackageManager
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.application
 import androidx.sqlite.SQLiteException
 import com.ameraldo.radar.data.AppDatabase

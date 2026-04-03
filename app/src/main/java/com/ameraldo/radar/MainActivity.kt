@@ -3,6 +3,7 @@ package com.ameraldo.radar
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
 import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,23 +12,20 @@ import androidx.activity.viewModels
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import com.ameraldo.radar.navigation.AppDestinations
 import com.ameraldo.radar.ui.RadarApp
 import com.ameraldo.radar.ui.theme.RadarTheme
-import androidx.lifecycle.lifecycleScope
 import com.ameraldo.radar.viewmodel.LocationViewModel
+import com.ameraldo.radar.viewmodel.RouteViewModel
 import com.ameraldo.radar.viewmodel.SensorViewModel
 import com.ameraldo.radar.viewmodel.UIStateViewModel
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val locationViewModel: LocationViewModel by viewModels()
     private val sensorViewModel: SensorViewModel by viewModels()
     private val uiStateViewModel: UIStateViewModel by viewModels()
+    private val routesViewModel: RouteViewModel by viewModels()
 
     private var isEnteringPiP = false
-    private var isCurrentlyInRadarScreen = false
 
     private val appLifecycleObserver = object : DefaultLifecycleObserver {
 
@@ -38,8 +36,8 @@ class MainActivity : ComponentActivity() {
         }
 
         override fun onStop(owner: LifecycleOwner) {
-            if (!isEnteringPiP) {
-                // Stop location and sensor updates when closing app
+            // Stop location and sensor updates only when app is not following or recording
+            if (!isEnteringPiP && !locationViewModel.isFollowing.value && !locationViewModel.isRecording.value) {
                 locationViewModel.stopLocationUpdates()
                 sensorViewModel.stopListening()
             }
@@ -47,17 +45,17 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d("PiP", "onCreate called, savedInstanceState: $savedInstanceState")
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             RadarTheme {
-                RadarApp()
-            }
-        }
-        // Observe UI state changes for PiP decisions
-        lifecycleScope.launch {
-            uiStateViewModel.currentDestination.collectLatest { destination ->
-                isCurrentlyInRadarScreen = (destination == AppDestinations.RADAR)
+                RadarApp(
+                    locationViewModel = locationViewModel,
+                    sensorViewModel = sensorViewModel,
+                    uiStateViewModel = uiStateViewModel,
+                    routesViewModel = routesViewModel
+                )
             }
         }
         // Observe lifecycle
@@ -69,18 +67,20 @@ class MainActivity : ComponentActivity() {
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
     }
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        // Only enter PiP (PictureInPicture) mode if currently on radar screen
-        if (isCurrentlyInRadarScreen) {
+    override fun onPause() {
+        Log.d("PiP", "onPause called")
+        super.onPause()
+        if (!isEnteringPiP) {
             isEnteringPiP = true
             val pipParams = PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(1, 1))  // 1:1 for circular radar
-                .setAutoEnterEnabled(true)
+                .setAspectRatio(Rational(1, 1))
                 .build()
-
             val success = enterPictureInPictureMode(pipParams)
-            if (!success) { isEnteringPiP = false }
+            Log.d("PiP", "PiP enter result: $success")
+            if (!success) {
+                Log.w("PiP", "PiP enter failed")
+                isEnteringPiP = false
+            }
         }
     }
 
