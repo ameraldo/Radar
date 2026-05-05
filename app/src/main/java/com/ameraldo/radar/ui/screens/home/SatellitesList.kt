@@ -46,7 +46,7 @@ import com.ameraldo.radar.ui.theme.lightGreen500Color
 import com.ameraldo.radar.ui.theme.orange500Color
 import com.ameraldo.radar.ui.theme.red500Color
 import com.ameraldo.radar.ui.theme.yellow500Color
-import com.ameraldo.radar.viewmodel.SatelliteBlip
+import com.ameraldo.radar.data.SatelliteBlip
 
 @Composable
 fun SatellitesList(

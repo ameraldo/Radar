@@ -134,7 +134,8 @@ fun RadarApp(
         permissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.POST_NOTIFICATIONS,
             )
         )
     }
@@ -197,6 +198,7 @@ fun RadarApp(
                         locationViewModel   = locationViewModel,
                         sensorViewModel     = sensorViewModel,
                         settingsViewModel   = settingsViewModel,
+                        uiStateViewModel    = uiStateViewModel,
 
                         recordedPolarPoints = recordedPolarPoints,
                         followingPolarPoints= followingPolarPoints,
@@ -207,10 +209,9 @@ fun RadarApp(
                     AppDestinations.ROUTES -> RoutesScreen(
                         modifier            = Modifier.padding(innerPadding),
                         routesViewModel     = routesViewModel,
-                        onFollowRoute = {
-                                routeId -> locationViewModel.startFollowing(routeId, onLoaded = {
+                        onFollowRoute = { routeId ->
+                            locationViewModel.startFollowing(routeId)
                             uiStateViewModel.updateDestination(AppDestinations.RADAR)
-                        })
                         }
                     )
                     AppDestinations.SETTINGS -> SettingsScreen(

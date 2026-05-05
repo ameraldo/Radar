@@ -10,6 +10,24 @@ import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * ViewModel that manages device sensors for compass heading.
+ *
+ * Uses accelerometer and magnetometer to calculate device heading (azimuth).
+ * The heading is used to rotate the radar display.
+ *
+ * ## State Properties
+ * - [headingDegrees]: Current compass heading in degrees (0-360°, 0 = North)
+ *
+ * ## Usage
+ * ```
+ * val sensorViewModel: SensorViewModel = viewModel()
+ * val heading by sensorViewModel.headingDegrees.collectAsState()
+ *
+ * // Start listening when screen appears
+ * sensorViewModel.startListening()
+ * ```
+ */
 class SensorViewModel(application: Application) : AndroidViewModel(application) {
     private val sensorManager =
         application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -42,6 +60,11 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
     }
 
+    /**
+     * Current compass heading in degrees.
+     *
+     * Range: 0-360° where 0° = North, 90° = East, 180° = South, 270° = West
+     */
     val headingDegrees: StateFlow<Float> = _headingDegrees
 
     init {
@@ -51,6 +74,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /**
+     * Starts receiving sensor updates for compass heading.
+     * Should be called when the screen/app becomes visible.
+     */
     fun startListening() {
         if (!sensorsAvailable) return
 
@@ -66,6 +93,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         )
     }
 
+    /**
+     * Stops receiving sensor updates.
+     * Should be called when the screen/app goes away.
+     */
     fun stopListening() {
         sensorManager.unregisterListener(sensorListener)
     }

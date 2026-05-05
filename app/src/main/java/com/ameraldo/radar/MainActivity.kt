@@ -1,8 +1,14 @@
 package com.ameraldo.radar
 
 import android.app.PictureInPictureParams
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.util.Rational
 import androidx.activity.ComponentActivity
@@ -10,16 +16,26 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.ameraldo.radar.navigation.AppDestinations
 import com.ameraldo.radar.ui.RadarApp
 import com.ameraldo.radar.ui.theme.RadarTheme
 import com.ameraldo.radar.viewmodel.LocationViewModel
 import com.ameraldo.radar.viewmodel.RouteViewModel
 import com.ameraldo.radar.viewmodel.SensorViewModel
 import com.ameraldo.radar.viewmodel.UIStateViewModel
+import com.ameraldo.radar.service.LocationService
+import com.ameraldo.radar.viewmodel.StopAction
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private var locationService: LocationService? = null
+    private var serviceBound = false
+
     private val locationViewModel: LocationViewModel by viewModels()
     private val sensorViewModel: SensorViewModel by viewModels()
     private val uiStateViewModel: UIStateViewModel by viewModels()
@@ -27,27 +43,59 @@ class MainActivity : ComponentActivity() {
 
     private var isEnteringPiP = false
 
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as LocationService.LocalBinder
+            locationService = binder.getService()
+            serviceBound = true
+            locationViewModel.setLocationService(locationService!!)
+            Log.d("MainActivity", "Service bound successfully")
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            locationService = null
+            serviceBound = false
+            locationViewModel.clearLocationService()
+            Log.d("MainActivity", "Service unbound")
+        }
+    }
+
     private val appLifecycleObserver = object : DefaultLifecycleObserver {
 
         override fun onStart(owner: LifecycleOwner) {
-            // Start location and sensor updates when screen appears
-            locationViewModel.startLocationUpdates()
             sensorViewModel.startListening()
         }
 
         override fun onStop(owner: LifecycleOwner) {
-            // Stop location and sensor updates only when app is not following or recording
-            if (!isEnteringPiP && !locationViewModel.isFollowing.value && !locationViewModel.isRecording.value) {
-                locationViewModel.stopLocationUpdates()
-                sensorViewModel.stopListening()
+            sensorViewModel.stopListening()
+        }
+    }
+
+    private fun bindLocationService() {
+        val intent = Intent(this, LocationService::class.java)
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun handleNotificationIntent(intent: Intent?) {
+        when (intent?.action) {
+            LocationService.ACTION_STOP_RECORDING -> {
+                uiStateViewModel.setPendingStopAction(StopAction.RECORDING)
+                uiStateViewModel.updateDestination(AppDestinations.RADAR)
+            }
+            LocationService.ACTION_STOP_FOLLOWING -> {
+                uiStateViewModel.setPendingStopAction(StopAction.FOLLOWING)
+                uiStateViewModel.updateDestination(AppDestinations.RADAR)
             }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d("PiP", "onCreate called, savedInstanceState: $savedInstanceState")
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        bindLocationService()
+        handleNotificationIntent(intent)
+
         setContent {
             RadarTheme {
                 RadarApp(
@@ -58,32 +106,36 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        // Observe lifecycle
+
+        // Only observe lifecycle for sensors, not service management
         ProcessLifecycleOwner.get().lifecycle.addObserver(appLifecycleObserver)
     }
-
+    override fun onNewIntent(intent: Intent) {
+            super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
     override fun onDestroy() {
         super.onDestroy()
         ProcessLifecycleOwner.get().lifecycle.removeObserver(appLifecycleObserver)
+        if (serviceBound) {
+            unbindService(serviceConnection)
+            serviceBound = false
+        }
     }
-
-    override fun onPause() {
-        Log.d("PiP", "onPause called")
-        super.onPause()
-        if (!isEnteringPiP) {
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val shouldEnterPiP = locationViewModel.isRecording.value || locationViewModel.isFollowing.value
+        if (shouldEnterPiP && !isEnteringPiP) {
             isEnteringPiP = true
             val pipParams = PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(1, 1))
                 .build()
             val success = enterPictureInPictureMode(pipParams)
-            Log.d("PiP", "PiP enter result: $success")
             if (!success) {
-                Log.w("PiP", "PiP enter failed")
                 isEnteringPiP = false
             }
         }
     }
-
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: Configuration
@@ -92,12 +144,9 @@ class MainActivity : ComponentActivity() {
         uiStateViewModel.updateIsInPiPMode(isInPictureInPictureMode)
 
         if (isInPictureInPictureMode) {
-            // Successfully entered PiP - sensors keep running
             isEnteringPiP = false
         } else {
-            // PiP denied or exited - restore normal behavior
             isEnteringPiP = false
-            locationViewModel.startLocationUpdates()
             sensorViewModel.startListening()
         }
     }

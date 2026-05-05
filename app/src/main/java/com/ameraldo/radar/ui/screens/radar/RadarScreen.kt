@@ -22,6 +22,7 @@ import com.ameraldo.radar.utils.PolarPoint
 import com.ameraldo.radar.viewmodel.LocationViewModel
 import com.ameraldo.radar.viewmodel.SensorViewModel
 import com.ameraldo.radar.viewmodel.SettingsViewModel
+import com.ameraldo.radar.viewmodel.UIStateViewModel
 import kotlin.collections.emptyList
 
 @Composable
@@ -30,6 +31,7 @@ fun RadarScreen(
     locationViewModel: LocationViewModel,
     sensorViewModel: SensorViewModel,
     settingsViewModel: SettingsViewModel,
+    uiStateViewModel: UIStateViewModel,
 
     recordedPolarPoints: List<PolarPoint>,
     followingPolarPoints: List<PolarPoint>,
@@ -47,6 +49,8 @@ fun RadarScreen(
     val radarDistanceUnits       by settingsViewModel.distanceUnits.collectAsState()
     val radarMaxRange            by settingsViewModel.maxRange.collectAsState()
     val selectedRange            by settingsViewModel.selectedRange.collectAsState()
+
+    val pendingStopAction        by uiStateViewModel.pendingStopAction.collectAsState()
 
     val radarRangeList = remember(radarMaxRange) { settingsViewModel.generateRangeList(radarMaxRange) }
     val radarRange = selectedRange.coerceIn(radarRangeList.min(), radarRangeList.max())
@@ -95,7 +99,14 @@ fun RadarScreen(
                 onRangeChange = { settingsViewModel.updateSelectedRange(it) }
             )
             Spacer(modifier = Modifier.height(8.dp))
-            RouteCard(locationViewModel, isRecording, isFollowing, onFollowingComplete)
+            RouteCard(
+                locationViewModel,
+                isRecording,
+                isFollowing,
+                onFollowingComplete,
+                pendingStopAction,
+                onStopActionHandled = { uiStateViewModel.clearPendingStopAction() }
+            )
         }
     }
 }

@@ -32,8 +32,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ameraldo.radar.viewmodel.LocationError
-import com.ameraldo.radar.viewmodel.LocationState
+import com.ameraldo.radar.data.LocationError
+import com.ameraldo.radar.data.LocationState
 
 @Composable
 fun CurrentLocationCard(

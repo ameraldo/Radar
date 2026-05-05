@@ -10,10 +10,27 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel that manages the list of saved routes.
+ *
+ * Provides a reactive list of all saved routes from the database.
+ *
+ * ## State Properties
+ * - [routes]: All saved routes, sorted by start time (newest first)
+ *
+ * ## Usage
+ * To delete a route:
+ * ```
+ * routeViewModel.deleteRoute(routeId)
+ * ```
+ */
 class RouteViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getInstance(application)
     private val routeDao = database.routeDao()
 
+    /**
+     * Flow of all saved routes, sorted by start time (newest first).
+     */
     val routes: StateFlow<List<RouteEntity>> = routeDao.getAllRoutes()
         .stateIn(
             scope = viewModelScope,
@@ -21,6 +38,11 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
             initialValue = emptyList()
         )
 
+    /**
+     * Deletes a route and all its associated points.
+     *
+     * @param routeId ID of the route to delete
+     */
     fun deleteRoute(routeId: Long) {
         viewModelScope.launch {
             routeDao.deleteRoute(routeId)

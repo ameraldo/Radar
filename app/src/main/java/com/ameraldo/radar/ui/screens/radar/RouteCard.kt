@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -32,19 +33,35 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.ameraldo.radar.ui.components.ConfirmationDialog
 import com.ameraldo.radar.viewmodel.LocationViewModel
+import com.ameraldo.radar.viewmodel.StopAction
 
 @Composable
 fun RouteCard(
     locationViewModel: LocationViewModel,
     isRecording: Boolean,
     isFollowing: Boolean,
-    onFollowingComplete: () -> Unit
+    onFollowingComplete: () -> Unit,
+    pendingStopAction: StopAction? = null,
+    onStopActionHandled: () -> Unit
 ) {
     val currentRouteName by locationViewModel.currentRouteName.collectAsState()
 
     var showStopRecordingConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     var showStopFollowingConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     var showSaveRouteDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Trigger dialog when pendingStopAction is set (when pressing "Stop" from notification bar)
+    LaunchedEffect(pendingStopAction) {
+        when (pendingStopAction) {
+            StopAction.RECORDING -> {
+                showStopRecordingConfirmationDialog = true
+            }
+            StopAction.FOLLOWING -> {
+                showStopFollowingConfirmationDialog = true
+            }
+            null -> { /* do nothing */ }
+        }
+    }
 
     Card(
         modifier  = Modifier.fillMaxWidth(),
@@ -106,8 +123,12 @@ fun RouteCard(
                 locationViewModel.stopRecording()
                 showStopRecordingConfirmationDialog = false
                 showSaveRouteDialog = true
+                onStopActionHandled()
             },
-            onDismiss = { showStopRecordingConfirmationDialog = false }
+            onDismiss = {
+                showStopRecordingConfirmationDialog = false
+                onStopActionHandled()
+            }
         )
     }
 
@@ -118,8 +139,12 @@ fun RouteCard(
             onConfirm = {
                 onFollowingComplete()
                 showStopFollowingConfirmationDialog = false
+                onStopActionHandled()
             },
-            onDismiss = { showStopFollowingConfirmationDialog = false }
+            onDismiss = {
+                showStopFollowingConfirmationDialog = false
+                onStopActionHandled()
+            }
         )
     }
 
@@ -145,7 +170,10 @@ private fun SaveRouteDialog(
     onDismiss: () -> Unit
 ) {
     var editedName by remember(currentRouteName) {
-        mutableStateOf(currentRouteName ?: "Route ${System.currentTimeMillis()}")
+        mutableStateOf(currentRouteName
+            ?.removePrefix("(In Progress)") // Remove the in progress part assigned by the service.
+            ?.trim()
+            ?: "Route ${System.currentTimeMillis()}")
     }
 
     AlertDialog(

@@ -55,8 +55,8 @@ private fun toPolarPoint(
 
     val radarRangeMeters = (
             if (radarDistanceUnits == DistanceUnits.METRIC) radarRange
-            else radarRange / 3.28084 // convert feet to meters
-    ) as Float
+            else (radarRange / 3.28084).toFloat() // convert feet to meters
+    )
 
     val lat1 = Math.toRadians(currentLat)
     val lat2 = Math.toRadians(targetLat)

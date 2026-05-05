@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Radar</string>
+    <string name="channel_name_location_tracking">Location Tracking</string>
+    <string name="channel_description_location_tracking">Shows when Radar is tracking your location in the background</string>
+    <string name="action_stop">Stop</string>
 </resources>

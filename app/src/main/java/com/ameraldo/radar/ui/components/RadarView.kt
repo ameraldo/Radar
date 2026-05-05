@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +43,7 @@ import com.ameraldo.radar.ui.theme.amber500Color
 import com.ameraldo.radar.ui.theme.green500Color
 import com.ameraldo.radar.ui.theme.red500Color
 import com.ameraldo.radar.utils.PolarPoint
-import com.ameraldo.radar.viewmodel.SatelliteBlip
+import com.ameraldo.radar.data.SatelliteBlip
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -86,10 +87,14 @@ fun RadarView(
     var previousHeading by remember { mutableFloatStateOf(headingDegrees) }
     var accumulatedHeading by remember { mutableFloatStateOf(headingDegrees) }
 
-    // Compute shortest-path delta each recomposition
-    val delta = ((headingDegrees - previousHeading + 540f) % 360f) - 180f
-    accumulatedHeading += delta
-    previousHeading = headingDegrees
+    // Update accumulated heading when headingDegrees changes
+    // This runs outside of composition, avoiding the mutation error
+    LaunchedEffect(headingDegrees) {
+        // Compute shortest-path delta
+        val delta = ((headingDegrees - previousHeading + 540f) % 360f) - 180f
+        accumulatedHeading += delta
+        previousHeading = headingDegrees
+    }
 
     // Smooth compass rotation
     val smoothHeading by animateFloatAsState(
