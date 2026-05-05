@@ -11,6 +11,17 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+/**
+ * Theme for the Radar application.
+ *
+ * Supports light/dark themes and dynamic color (Android 12+).
+ * Includes medium and high contrast color schemes.
+ *
+ * @param darkTheme Whether to use dark theme (defaults to system setting)
+ * @param dynamicColor Whether to use dynamic color (Android 12+)
+ * @param content Composable content to apply the theme to
+ */
+
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
     onPrimary = onPrimaryLight,

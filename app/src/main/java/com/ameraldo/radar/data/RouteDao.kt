@@ -9,8 +9,9 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Data Access Object for routes and GPS points.
  *
- * Provides database operations using Room. All methods are suspending functions
- * except for Flow-based queries which provide reactive updates.
+ * Provides database operations using Room.
+ * - Write operations (insert/update/delete) are suspending functions
+ * - Read operations return [Flow] for reactive updates when data changes
  */
 @Dao
 interface RouteDao {
@@ -58,10 +59,12 @@ interface RouteDao {
 
     /**
      * Inserts multiple GPS points into the database.
+     * Used for batch insertion during route recording.
      *
      * @param points List of RecordedPointEntity to insert
      */
-    @Insert suspend fun insertPoints(points: List<RecordedPointEntity>)
+    @Insert
+    suspend fun insertPoints(points: List<RecordedPointEntity>)
 
     /**
      * Gets all points for a specific route, ordered by sequence number.

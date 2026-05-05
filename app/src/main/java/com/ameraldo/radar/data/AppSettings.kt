@@ -11,6 +11,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/**
+ * DataStore extension for app settings.
+ * Creates a "settings" DataStore with preferences.
+ */
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 /**
@@ -35,18 +39,18 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
  */
 class AppSettings(private val context: Context) {
     companion object {
-        /** DataStore key for max range preference */
+        /** DataStore key for max range preference (in meters or feet depending on units) */
         val MAX_RANGE_KEY = intPreferencesKey("max_range")
-        /** DataStore key for selected range preference */
+        /** DataStore key for selected range preference (displayed on radar) */
         val SELECTED_RANGE_KEY = floatPreferencesKey("selected_range")
-        /** DataStore key for distance units preference */
+        /** DataStore key for distance units preference (metric/imperial) */
         val DISTANCE_UNITS_KEY = stringPreferencesKey("distance_units")
 
-        /** Default max range in meters or feet */
+        /** Default max range: 1000 meters or 1000 feet */
         const val DEFAULT_MAX_RANGE      = 1000
-        /** Default selected range in meters or feet */
+        /** Default selected range: 500 meters or 500 feet */
         const val DEFAULT_SELECTED_RANGE = 500f
-        /** Default distance units */
+        /** Default distance units: metric */
         const val DEFAULT_DISTANCE_UNITS = "metric"
     }
 
@@ -54,12 +58,10 @@ class AppSettings(private val context: Context) {
     val maxRange: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[MAX_RANGE_KEY] ?: DEFAULT_MAX_RANGE
     }
-
     /** Flow of selected radar range for display */
     val selectedRange: Flow<Float> = context.dataStore.data.map { prefs ->
         prefs[SELECTED_RANGE_KEY] ?: DEFAULT_SELECTED_RANGE
     }
-
     /** Flow of distance units preference */
     val distanceUnits: Flow<DistanceUnits> = context.dataStore.data.map { prefs ->
         DistanceUnits.fromString(prefs[DISTANCE_UNITS_KEY] ?: DEFAULT_DISTANCE_UNITS)
@@ -75,7 +77,6 @@ class AppSettings(private val context: Context) {
             prefs[MAX_RANGE_KEY] = range
         }
     }
-
     /**
      * Updates the selected radar range preference.
      *
@@ -86,9 +87,9 @@ class AppSettings(private val context: Context) {
             prefs[SELECTED_RANGE_KEY] = range
         }
     }
-
     /**
      * Updates the distance units preference.
+     * Also resets max range to the default for the new unit system.
      *
      * @param distanceUnits New distance units (METRIC or IMPERIAL)
      */
@@ -113,9 +114,10 @@ enum class DistanceUnits(val value: String) {
     companion object {
         /**
          * Converts a string value to DistanceUnits.
+         * Returns [METRIC] if the string doesn't match any known value.
          *
-         * @param value String value to convert
-         * @return DistanceUnits or METRIC if invalid
+         * @param value String value from DataStore (e.g., "metric", "imperial")
+         * @return DistanceUnits enum or METRIC as default fallback
          */
         fun fromString(value: String): DistanceUnits {
             return entries.find { it.value == value } ?: METRIC

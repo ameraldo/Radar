@@ -11,6 +11,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ameraldo.radar.data.DistanceUnits
 
+/**
+ * Segmented button row for selecting radar range.
+ *
+ * Displays available range options (e.g., 250m, 500m, 750m, 1000m for metric).
+ * The selected range controls the scale of the radar display.
+ *
+ * @param selectedRange Currently selected range value
+ * @param rangeList List of available range options
+ * @param distanceUnits Current distance units (affects label formatting)
+ * @param onRangeChange Callback when user selects a new range
+ * @param modifier Modifier for styling
+ */
 @Composable
 fun RangeSelector(
     selectedRange: Float,

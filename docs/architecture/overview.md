@@ -1,41 +1,57 @@
 # Architecture Overview
 
-Radar follows the **MVVM (Model-View-ViewModel)** architecture pattern with **Clean Architecture** principles, using **Hilt** for dependency injection.
+Radar follows the **MVVM (Model-View-ViewModel)** architecture pattern with **Clean Architecture** principles, using **manual dependency injection** via ViewModel factories.
 
 ## Overall Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         MainActivity                            │
-│  - Starts/Stops LocationService based on recording/following    │
-│  - Handles PiP mode                                             │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      LocationService                            │
-│  - SINGLE source of truth for location & recording              │
-│  - Runs as Foreground Service (survives screen lock)            │
-│  - Handles: startRecording, stopRecording, startFollowing, etc. │
-│  - Updates notification with distance/points/time               │
-│  - Uses WakeLock for reliable background tracking               │
-└─────────────────────────────────────────────────────────────────┘
-           │                    │                    │
-           │ StateFlow          │ StateFlow          │ StateFlow
-           ▼                    ▼                    ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     LocationViewModel                           │
-│  - OBSERVES service state (no duplicate logic)                  │
-│  - Exposes data for UI                                          │
-│  - Acts as a bridge between Service and UI                      │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                            UI                                   │
-│  - Compose Screens (Home, Radar, Routes, Settings)              │
-│  - Observe ViewModels via StateFlow                             │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph MainActivity
+        Main[MainActivity<br/>- Binds LocationService<br/>- Manages PiP mode<br/>- Handles notifications]
+    end
+
+    subgraph Service["Service Layer"]
+        LocService[LocationService<br/>Foreground Service<br/>- Single source of truth<br/>- GPS tracking<br/>- Recording/Following<br/>- Notification updates]
+    end
+
+    subgraph ViewModels["ViewModel Layer"]
+        LocVM[LocationViewModel<br/>Bridges Service ↔ UI]
+        RouteVM[RouteViewModel<br/>Manages saved routes]
+        SensorVM[SensorViewModel<br/>Compass/heading]
+        SettingsVM[SettingsViewModel<br/>App preferences]
+        UIStateVM[UIStateViewModel<br/>UI state management]
+    end
+
+    subgraph UI["UI Layer (Jetpack Compose)"]
+        Home[HomeScreen]
+        Radar[RadarScreen]
+        Routes[RoutesScreen]
+        Settings[SettingsScreen]
+    end
+
+    subgraph Data["Data Layer"]
+        Room[Room Database<br/>Routes + Points]
+        DS1[AppSettings<br/>DataStore]
+        DS2[ServiceState<br/>DataStore]
+    end
+
+    Main -->|binds to| LocService
+    LocService -->|persists state| DS2
+    LocService -->|writes| Room
+
+    LocService -->|StateFlow| LocVM
+    LocVM -->|StateFlow| Home
+    LocVM -->|StateFlow| Radar
+    SensorVM --> Home
+    SensorVM --> Radar
+
+    RouteVM -->|StateFlow| Routes
+    RouteVM -->|reads/writes| Room
+
+    SettingsVM -->|StateFlow| Settings
+    SettingsVM -->|reads/writes| DS1
+
+    Main --> UIStateVM
 ```
 
 ## Layer Responsibilities
@@ -45,19 +61,22 @@ Radar follows the **MVVM (Model-View-ViewModel)** architecture pattern with **Cl
   - Single source of truth for location data
   - Runs as a Foreground Service to survive screen lock
   - Handles route recording and following logic
-  - Updates notification with recording status
+  - Updates notification with recording/following status
+  - Persists state via ServiceState (DataStore) for restarts
 
 ### ViewModel Layer (`viewmodel/`)
 - **LocationViewModel**: Bridges LocationService and UI, manages location state
 - **RouteViewModel**: Manages saved routes list
 - **SensorViewModel**: Handles compass/heading via accelerometer and magnetometer
 - **SettingsViewModel**: Manages app settings preferences
+- **UIStateViewModel**: Manages UI state (navigation destination, PiP mode, pending stop actions)
 
 ### Data Layer (`data/`)
-- **AppDatabase**: Room database instance
+- **AppDatabase**: Room database instance (singleton via `getInstance()`)
 - **RouteDao**: Data access object for routes and points
 - **RouteEntity/RecordedPointEntity**: Database entities
 - **AppSettings**: DataStore preferences for user settings
+- **ServiceState**: DataStore for persisting service state across restarts
 
 ### UI Layer (`ui/`)
 - **Screens**: HomeScreen, RadarScreen, RoutesScreen, SettingsScreen
@@ -66,11 +85,12 @@ Radar follows the **MVVM (Model-View-ViewModel)** architecture pattern with **Cl
 
 ## Dependency Injection
 
-The app uses **Hilt** for dependency injection. Key injected components:
+The app uses **manual dependency injection** via ViewModel factories (`viewModels()`). Key components:
 
-- `AppDatabase` - Room database singleton
-- `RouteDao` - Data access for routes/points
-- `AppSettings` - DataStore preferences
+- `AppDatabase.getInstance(context)` - Room database singleton
+- `RouteDao` - Injected via database instance
+- `AppSettings(context)` - DataStore preferences
+- `LocationService` - Bound via ServiceConnection in MainActivity
 
 ## Key Design Decisions
 
@@ -83,3 +103,5 @@ The app uses **Hilt** for dependency injection. Key injected components:
 4. **Single Source of Truth**: LocationService is the single source of truth for location and recording state, avoiding duplication between ViewModel and Service.
 
 5. **Picture-in-Picture Support**: The app supports PiP mode, allowing users to keep the radar visible while using other apps.
+
+6. **State Persistence**: ServiceState (DataStore) persists recording/following state across service restarts (e.g., system killing the service).

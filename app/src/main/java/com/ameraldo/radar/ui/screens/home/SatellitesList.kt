@@ -48,6 +48,14 @@ import com.ameraldo.radar.ui.theme.red500Color
 import com.ameraldo.radar.ui.theme.yellow500Color
 import com.ameraldo.radar.data.SatelliteBlip
 
+/**
+ * Displays a card showing satellite count and opens a dialog with detailed list.
+ *
+ * Shows locked/in-view count and opens [SatelliteDialog] on tap.
+ *
+ * @param satellites List of visible GPS satellites
+ * @param modifier Modifier for styling
+ */
 @Composable
 fun SatellitesList(
     satellites: List<SatelliteBlip>,
@@ -94,6 +102,15 @@ fun SatellitesList(
     }
 }
 
+/**
+ * Full-screen dialog displaying detailed satellite information.
+ *
+ * Shows a scrollable list with signal strength bars and details
+ * (azimuth, elevation, almanac, ephemeris, frequency).
+ *
+ * @param satellites List of visible GPS satellites
+ * @param onDismiss Callback to close the dialog
+ */
 @Composable
 private fun SatelliteDialog(
     satellites: List<SatelliteBlip>,
@@ -179,6 +196,14 @@ private fun SatelliteDialog(
     }
 }
 
+/**
+ * Displays a single satellite's information in a row.
+ *
+ * Shows constellation, SVID, lock status, signal strength bar,
+ * and detailed properties in a grid layout.
+ *
+ * @param sat The satellite data to display
+ */
 @Composable
 private fun SatelliteRow(sat: SatelliteBlip) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -216,6 +241,14 @@ private fun SatelliteRow(sat: SatelliteBlip) {
     }
 }
 
+/**
+ * Displays a lock status badge for a satellite.
+ *
+ * Shows "LOCKED" (green) if satellite is used in fix,
+ * or "VISIBLE" (yellow) if just visible.
+ *
+ * @param isLocked Whether the satellite is locked (used in position fix)
+ */
 @Composable
 private fun LockBadge(isLocked: Boolean) {
     val text  = if (isLocked) "LOCKED" else "VISIBLE"
@@ -228,6 +261,18 @@ private fun LockBadge(isLocked: Boolean) {
     )
 }
 
+/**
+ * Displays a signal strength bar for a satellite.
+ *
+ * Color-coded based on signal quality:
+ * - ≥42 dB-Hz: Green (Excellent)
+ * - ≥35 dB-Hz: Light Green (Good)
+ * - ≥30 dB-Hz: Yellow (Usable)
+ * - ≥20 dB-Hz: Orange (Poor)
+ * - <20 dB-Hz: Red (Very Weak)
+ *
+ * @param cn0 Signal-to-noise ratio in dB-Hz
+ */
 @Composable
 private fun SignalBar(cn0: Float) {
     val fraction = (cn0 / 50f).coerceIn(0f, 1f)
@@ -275,6 +320,12 @@ private fun SignalBar(cn0: Float) {
     }
 }
 
+/**
+ * Returns a text label for signal strength.
+ *
+ * @param cn0 Signal-to-noise ratio in dB-Hz
+ * @return "Excellent", "Good", "Usable", "Poor", or "Very Weak"
+ */
 private fun signalLabel(cn0: Float) = when {
     cn0 >= 42f -> "Excellent"
     cn0 >= 35f -> "Good"
@@ -283,6 +334,12 @@ private fun signalLabel(cn0: Float) = when {
     else       -> "Very Weak"
 }
 
+/**
+ * Displays a label-value pair in the satellite details grid.
+ *
+ * @param label The property name (e.g., "Azimuth", "Elevation")
+ * @param value The property value (e.g., "45.5°", "Yes")
+ */
 @Composable
 private fun DetailItem(label: String, value: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

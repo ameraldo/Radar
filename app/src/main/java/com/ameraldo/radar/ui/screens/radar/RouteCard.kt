@@ -33,15 +33,28 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.ameraldo.radar.ui.components.ConfirmationDialog
 import com.ameraldo.radar.viewmodel.LocationViewModel
-import com.ameraldo.radar.viewmodel.StopAction
+import com.ameraldo.radar.viewmodel.UIStateViewModel
 
+/**
+ * Card displaying route recording/following controls.
+ *
+ * Shows Start Recording, Stop Recording, or Stop Following button
+ * based on current state. Handles confirmation dialogs and save dialog.
+ *
+ * @param locationViewModel For starting/stopping recording
+ * @param isRecording Whether currently recording
+ * @param isFollowing Whether currently following a route
+ * @param onFollowingComplete Callback when following is stopped
+ * @param pendingStopAction Stop action from notification bar (triggers dialog)
+ * @param onStopActionHandled Callback after dialog is handled
+ */
 @Composable
 fun RouteCard(
     locationViewModel: LocationViewModel,
     isRecording: Boolean,
     isFollowing: Boolean,
     onFollowingComplete: () -> Unit,
-    pendingStopAction: StopAction? = null,
+    pendingStopAction: UIStateViewModel.StopAction? = null,
     onStopActionHandled: () -> Unit
 ) {
     val currentRouteName by locationViewModel.currentRouteName.collectAsState()
@@ -53,10 +66,10 @@ fun RouteCard(
     // Trigger dialog when pendingStopAction is set (when pressing "Stop" from notification bar)
     LaunchedEffect(pendingStopAction) {
         when (pendingStopAction) {
-            StopAction.RECORDING -> {
+            UIStateViewModel.StopAction.RECORDING -> {
                 showStopRecordingConfirmationDialog = true
             }
-            StopAction.FOLLOWING -> {
+            UIStateViewModel.StopAction.FOLLOWING -> {
                 showStopFollowingConfirmationDialog = true
             }
             null -> { /* do nothing */ }
@@ -163,6 +176,16 @@ fun RouteCard(
     }
 }
 
+/**
+ * Dialog for saving a recorded route with a custom name.
+ *
+ * Pre-fills with current route name (minus "(In Progress)" prefix).
+ * User can save (keeps route) or delete (discards route).
+ *
+ * @param currentRouteName Current name of the route being saved
+ * @param onSave Callback with new name when user saves
+ * @param onDismiss Callback when user dismisses (deletes route)
+ */
 @Composable
 private fun SaveRouteDialog(
     currentRouteName: String?,

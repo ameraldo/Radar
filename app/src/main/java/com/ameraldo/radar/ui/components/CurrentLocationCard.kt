@@ -35,6 +35,18 @@ import androidx.compose.ui.unit.dp
 import com.ameraldo.radar.data.LocationError
 import com.ameraldo.radar.data.LocationState
 
+/**
+ * Displays current GPS location information in a card.
+ *
+ * Handles different states:
+ * - Loading: Shows progress indicator
+ * - Error: Shows error message with retry button
+ * - Success: Shows latitude, longitude, accuracy
+ *
+ * @param locationState Current GPS location state
+ * @param isRecording Whether recording is active (shows recording indicator)
+ * @param onRetryGrantPermissions Callback to request location permissions
+ */
 @Composable
 fun CurrentLocationCard(
     locationState: LocationState,

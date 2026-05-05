@@ -8,7 +8,7 @@ The Routes Screen shows all saved GPS routes, allowing users to view, follow, or
 
 ## Location
 
-**File**: `app/src/main/java/com/ameraldo/radar/ui/screens/routes/RoutesScreen.kt`
+**File**: `app/src/main/java/com.ameraldo.radar/ui/screens/routes/RoutesScreen.kt`
 
 ## Features
 
@@ -33,7 +33,7 @@ The Routes Screen shows all saved GPS routes, allowing users to view, follow, or
 
 | Component | Description |
 |-----------|-------------|
-| `RoutesList` | List of saved routes with actions |
+| [RoutesList](../api/RoutesList.md) | List of saved routes with actions |
 
 ## State Dependencies
 
@@ -76,7 +76,7 @@ data class RouteEntity(
 
 1. **View routes**: Browse saved routes list
 2. **Follow route**: Tap route to start navigation
-3. **Delete route**: Swipe or tap delete (see RoutesList)
+3. **Delete route**: Tap delete icon in RoutesList
 
 ## Storage
 
@@ -88,5 +88,7 @@ Routes stored in Room database:
 ## Related Documentation
 
 - [RouteViewModel](../api/RouteViewModel.md) - Route list management
+- [RoutesList](../api/RoutesList.md) - Route list component
+- [ConfirmationDialog](../api/ConfirmationDialog.md) - Delete confirmation
 - [RouteDao](../api/RouteDao.md) - Database operations
 - [RouteEntity](../api/RouteEntity.md) - Data model

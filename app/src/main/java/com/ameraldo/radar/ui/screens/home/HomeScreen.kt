@@ -27,6 +27,18 @@ import com.ameraldo.radar.ui.components.RadarView
 import com.ameraldo.radar.viewmodel.LocationViewModel
 import com.ameraldo.radar.viewmodel.SensorViewModel
 
+/**
+ * Home screen composable.
+ *
+ * Displays a radar view with satellite blips and current location card.
+ * Includes a FAB to start recording and navigate to Radar screen.
+ *
+ * @param modifier Modifier for styling
+ * @param locationViewModel For location state
+ * @param sensorViewModel For compass heading
+ * @param onRequestPermission Callback to request location permissions
+ * @param onRecord Callback when record button is clicked (starts recording + navigates to Radar)
+ */
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,

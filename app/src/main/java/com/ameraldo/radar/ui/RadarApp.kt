@@ -42,6 +42,17 @@ import com.ameraldo.radar.viewmodel.SensorViewModel
 import com.ameraldo.radar.viewmodel.SettingsViewModel
 import com.ameraldo.radar.viewmodel.UIStateViewModel
 
+/**
+ * Main composable for the Radar application.
+ *
+ * Sets up navigation, state management, and permission handling.
+ * Converts recorded/following points to polar coordinates for radar display.
+ *
+ * @param locationViewModel Manages GPS and service communication
+ * @param sensorViewModel Manages compass heading
+ * @param uiStateViewModel Manages UI state (navigation, PiP, stop actions)
+ * @param routesViewModel Manages saved routes
+ */
 @Composable
 fun RadarApp(
     locationViewModel: LocationViewModel,
@@ -76,6 +87,7 @@ fun RadarApp(
     val radarRange = selectedRange.coerceIn(radarRangeList.min(), radarRangeList.max())
 
     // Convert recorded points to polar coordinates relative to current position
+    // Uses remember to avoid recalculation unless dependencies change
     val recordedPolarPoints = remember(currentRoutePoints, locationState.latitude,
         locationState.longitude, radarRange, radarDistanceUnits) {
         val lat = locationState.latitude
@@ -86,6 +98,7 @@ fun RadarApp(
     }
 
     // Convert following points to polar coordinates relative to current position
+    // Uses remember to avoid recalculation unless dependencies change
     val followingPolarPoints = remember(followingRemainingPoints, locationState.latitude,
         locationState.longitude, radarRange, radarDistanceUnits) {
         val lat = locationState.latitude
@@ -95,6 +108,8 @@ fun RadarApp(
         } else emptyList()
     }
 
+    // Permission launcher: requests FINE/COARSE location + notifications
+    // Handles: granted → start updates, denied → set error state (permanent check)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -103,6 +118,7 @@ fun RadarApp(
         if (granted) {
             locationViewModel.startLocationUpdates()
         } else {
+            // Check if permanently denied (user checked "Don't ask again")
             val permanentlyDenied = activity?.let {
                 !ActivityCompat.shouldShowRequestPermissionRationale(
                     it, Manifest.permission.ACCESS_FINE_LOCATION
@@ -113,7 +129,8 @@ fun RadarApp(
         }
     }
 
-    // resume check
+    // Resume check: re-request location when app comes to foreground
+    // This handles the case where user enabled permissions in Settings
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -130,6 +147,7 @@ fun RadarApp(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Permission request callback: launches system permission dialog
     val onRequestPermission = {
         permissionLauncher.launch(
             arrayOf(
@@ -140,6 +158,7 @@ fun RadarApp(
         )
     }
 
+    // Picture-in-Picture mode: show only the radar (zoomed in)
     if (isInPiPMode) {
         RadarView(
             modifier = Modifier

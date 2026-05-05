@@ -39,12 +39,13 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         )
 
     /**
-     * Deletes a route and all its associated points.
+     * Deletes a route and all its associated points (cascade delete).
      *
      * @param routeId ID of the route to delete
      */
     fun deleteRoute(routeId: Long) {
         viewModelScope.launch {
+            // Delete from Room (async, doesn't block UI)
             routeDao.deleteRoute(routeId)
         }
     }

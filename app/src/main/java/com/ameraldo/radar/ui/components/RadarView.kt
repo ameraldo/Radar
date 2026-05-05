@@ -47,18 +47,32 @@ import com.ameraldo.radar.data.SatelliteBlip
 import kotlin.math.cos
 import kotlin.math.sin
 
-// Arrow Direction
+// Arrow Direction for compass ring
 private enum class ArrowDirection {
     OUTWARD, INWARD
 }
 
 /**
- * Radar view component
+ * Main radar visualization component.
  *
- * @param headingDegrees used to track the compass rotation to avoid wraparound jumps at
- * 0-360 degrees.
- * @param satelliteBlips used to display the available satellite points in the radar
- * @param recordedPoints used to display the recorded coordinates points in the radar
+ * Displays a radar screen with:
+ * - Rotating compass ring (tracks device heading)
+ * - Stationary radar grid (concentric rings, polar grid, cartesian mesh)
+ * - Animated sweep line with trail
+ * - Recorded points (green = start, amber = current/path)
+ * - Satellite blips (color-coded by signal strength)
+ * - Following indicator (dashed line to next point)
+ *
+ * Uses smooth compass rotation to avoid wraparound jumps at 0°/360°.
+ * The sweep animation runs continuously when the component is visible.
+ *
+ * @param modifier Modifier for styling
+ * @param headingDegrees Current compass heading (0-360°)
+ * @param satelliteBlips List of satellites to display (null = show radar screen)
+ * @param recordedPoints List of recorded points to display
+ * @param nextPointToFollow Next point to follow (shows arrow + dashed line)
+ * @param radarRange Selected radar range in meters/feet
+ * @param radarDistanceUnits Current distance units
  */
 @Composable
 fun RadarView(
@@ -81,9 +95,10 @@ fun RadarView(
     val amberColor          = amber500Color
     val greenColor          = green500Color
 
-    /* ***************** Helper functions that assure a smooth compass behavior ***************** */
+    /* ********************** Helper functions for smooth compass behavior ********************** */
 
-    // Track accumulated rotation to avoid wraparound jumps
+    // Track accumulated rotation to avoid wraparound jumps at 0°/360°
+    // Uses shortest-path delta calculation
     var previousHeading by remember { mutableFloatStateOf(headingDegrees) }
     var accumulatedHeading by remember { mutableFloatStateOf(headingDegrees) }
 
@@ -114,8 +129,9 @@ fun RadarView(
         label = "sweep_angle"
     )
 
-    /* ************************************ Radar Component ************************************* */
+    /* ******************************* Radar Drawing (Stationary) ******************************* */
 
+    // Colors are read from MaterialTheme to respect light/dark mode
     val windowInfo = LocalWindowInfo.current
     val density    = LocalDensity.current
     val screenPx   = with(density) {
@@ -163,6 +179,7 @@ fun RadarView(
         )
 
         // 2. Concentric rings — spaced by radarR/4, repeating outward to fullR
+        // Labels are drawn at 45° on the first 3 rings (not outer edge)
         val ringSpacingPx = radarR / 4f
         var ringDistance = radarRange / 4f
         var r = ringSpacingPx
@@ -216,7 +233,7 @@ fun RadarView(
             ringDistance += radarRange / 4f
         }
 
-        // 3. Polar grid lines every 30°
+        // 3. Polar grid lines every 30° (from center outward to fullR)
         for (deg in 0 until 360 step 30) {
             val rad = Math.toRadians(deg.toDouble())
             drawLine(
@@ -229,10 +246,10 @@ fun RadarView(
             )
         }
 
-        // 4. Cartesian mesh — extends to fullR
+        // 4. Cartesian mesh — extends to fullR (clipped to radar radius for display)
         drawCartesianGrid(cx, cy, radarR, fullR, outlineVariantColor)
 
-        // 5. Crosshairs
+        // 5. Crosshairs (gaps at center for readability)
         val gap = radarR * 0.08f
         drawLine(outlineColor, Offset(cx - radarR, cy),
                  Offset(cx - gap, cy), strokeWidth = 1.5f)
@@ -243,13 +260,13 @@ fun RadarView(
         drawLine(outlineColor, Offset(cx, cy + gap),
                  Offset(cx, cy + radarR), strokeWidth = 1.5f)
 
-        // 6. Tick marks
+        // 6. Tick marks on radar circle (major every 30°, minor every 10°)
         drawTicks(cx, cy, radarR, outlineColor)
 
         // 7. Sweep trail
         drawSweepTrail(cx, cy, radarR, sweepAngle,
                        primaryColor.copy(alpha = 0.2f)) // 20% transparency
-        // 8. Sweep line
+        // 8. Sweep line (rotates continuously, 3s per revolution)
         val sweepRad = Math.toRadians(sweepAngle.toDouble())
         drawLine(
             color = primaryColor,
@@ -262,14 +279,15 @@ fun RadarView(
             cap = StrokeCap.Round
         )
 
-        // 9. Centre dot
+        // 9. Centre dot (marks device position)
         drawCircle(primaryColor, radius = 5f, center = Offset(cx, cy))
 
-        // 10. Direction arrow fixed at the top, red
+        // 10. Direction arrow fixed at top (points to true North, red)
         drawArrow(cx, cy, outerR, radarR, angleDeg = 0f,
             ArrowDirection.INWARD, color = outlineColor)
 
-        // 11. Recorded point blips
+        // 11. Recorded point blips (green = start, amber = current/path)
+        // Points are drawn with 3 layers: outer glow, middle ring, core dot
         recordedPoints.forEachIndexed { index, point ->
             val bRad    = Math.toRadians(point.angleDeg.toDouble())
             val bRadius = radarR * point.radiusFraction.coerceIn(0f, 0.95f)
@@ -293,7 +311,7 @@ fun RadarView(
                        center = Offset(bx, by))
         }
 
-        // 12. Recorded path — line connecting all points
+        // 12. Recorded path — line connecting all points (shows route taken)
         if (recordedPoints.size > 1) {
             val pathPoints = recordedPoints.map { point ->
                 val bRad    = Math.toRadians(point.angleDeg.toDouble())
@@ -315,7 +333,8 @@ fun RadarView(
             }
         }
 
-        // 13. Draw line from center to next point to follow
+        // 13. Dashed line from center to next point to follow (navigation aid)
+        // Uses segments to create dashed effect
         nextPointToFollow?.let { nextPoint ->
             val bRad = Math.toRadians(nextPoint.angleDeg.toDouble())
             val bRadius = radarR * nextPoint.radiusFraction.coerceIn(0f, 0.95f)
@@ -352,7 +371,9 @@ fun RadarView(
 //            )
         }
 
-        // 14. Satellite blips
+        // 14. Satellite blips (color-coded by signal strength)
+        // Green = locked (used in fix), yellow→red gradient by signal strength
+        // 3 layers: outer glow, middle ring, core dot
         satelliteBlips?.forEach { blip ->
             val bRad = Math.toRadians(blip.angleDeg.toDouble())
             val bRadius = radarR * blip.radiusFraction.coerceIn(0f, 0.95f)
@@ -387,14 +408,14 @@ fun RadarView(
         /* ************************ Compass ring (rotates with heading) ************************* */
 
         rotate(degrees = -smoothHeading, pivot = Offset(cx, cy)) {
-            // 1. Compass ring
+            // 1. Compass ring (rotates with heading)
             drawCompassRing(cx, cy, outerR, radarR, secondaryColor,
                            redColor, primaryColor)
-            // 2. Arrow "sticks" to true north, red
+            // 2. Arrow "sticks" to true north (red, outward)
             drawArrow(cx, cy, outerR, radarR, angleDeg = 0f, ArrowDirection.OUTWARD,
-                      color = redColor)
+                       color = redColor)
 
-            // 3. Direction to follow point arrow, yellow
+            // 3. Direction to follow point arrow (yellow, inward)
             nextPointToFollow?.let { point ->
                 drawArrow(cx, cy, outerR, radarR, angleDeg = point.angleDeg,
                 ArrowDirection.INWARD, color = Color(0xFFFFD040)
@@ -405,7 +426,22 @@ fun RadarView(
 }
 
 /**
- * Draws the outer compass ring with tick marks and N/S/E/W labels
+ * Draws the outer compass ring with tick marks and cardinal direction labels.
+ *
+ * Draws:
+ * - Outer ring border and inner border
+ * - Tick marks every 5° (longer every 45°, thick every 90°)
+ * - Cardinal labels (N, E, S, W) beyond the longest tick
+ *
+ * This function is called inside [rotate] scope, so the ring rotates with heading.
+ *
+ * @param cx Center X coordinate
+ * @param cy Center Y coordinate
+ * @param outerR Outer radius (compass ring)
+ * @param radarR Inner radius (radar circle)
+ * @param compassRingColor Color for ring and major ticks
+ * @param northColor Color for "N" label (highlighted)
+ * @param cardinalColor Color for "E", "S", "W" labels
  */
 private fun DrawScope.drawCompassRing(
     cx: Float, cy: Float,
@@ -431,7 +467,7 @@ private fun DrawScope.drawCompassRing(
 
     val bandWidth = outerR - radarR
 
-    // Tick marks every 5°, longer every 45° and extend OUTWARD from outerR
+    // Tick marks every 5°, longer every 45° (extend OUTWARD from outerR)
     for (deg in 0 until 360 step 5) {
         val rad     = Math.toRadians(deg.toDouble())
         val sinA    = sin(rad).toFloat()
@@ -442,7 +478,7 @@ private fun DrawScope.drawCompassRing(
             deg % 45 == 0  -> (outerR - radarR) * 0.55f
             else           -> (outerR - radarR) * 0.45f
         }
-        // Draw the ticks, starting at the outer ring, extend outward
+        // Draw ticks: start at outer ring, extend outward by tickLen
         drawLine(
             color       = if (isMajor) compassRingColor else compassRingColor.copy(alpha = 0.5f),
             start       = Offset(cx + outerR * sinA, cy - outerR * cosA),
@@ -461,7 +497,7 @@ private fun DrawScope.drawCompassRing(
 //        )
     }
 
-    // Cardinal labels sit beyond the longest tick
+    // Cardinal labels: positioned beyond the longest tick (outside compass band)
     val labelRadius = outerR + bandWidth * 1.05f
 
     // Replace the line above with this one if you want the cardinal labels between the inner
@@ -484,7 +520,8 @@ private fun DrawScope.drawCompassRing(
         val ly   = cy - labelRadius * cos(rad).toFloat()
         val textSize = (outerR - radarR) * 1.4f
 
-        // Draw the label — counter-rotate so text stays upright as ring spins
+        // Draw label: counter-rotate so text stays upright as ring spins
+        // Since we're inside rotate{} scope, we offset to label position
         drawContext.canvas.nativeCanvas.apply {
             withSave {
                 // We undo the parent rotate() so the text reads correctly
@@ -502,7 +539,17 @@ private fun DrawScope.drawCompassRing(
 }
 
 /**
- * Draws the cartesian grid
+ * Draws the cartesian grid (horizontal and vertical lines).
+ *
+ * Creates a grid of cells within the radar circle.
+ * Lines are clipped to [inRadius] (inner radar circle).
+ * Extends outward to [exRadius] for the compass band area.
+ *
+ * @param cx Center X coordinate
+ * @param cy Center Y coordinate
+ * @param inRadius Inner radius where grid lines stop (radar circle)
+ * @param exRadius Outer radius where grid lines extend to
+ * @param gridColor Color for grid lines (with alpha)
  */
 private fun DrawScope.drawCartesianGrid(cx: Float, cy: Float, inRadius: Float, exRadius: Float,
                                         gridColor: Color) {
@@ -527,7 +574,20 @@ private fun DrawScope.drawCartesianGrid(cx: Float, cy: Float, inRadius: Float, e
 }
 
 /**
- * Draws each grid segment for the cartesian grid above
+ * Draws a single grid segment, clipped to the radar circle.
+ *
+ * Draws a line segment from (x1,y1) to (x2,y2), but only the portion
+ * inside the radar circle (radius) is visible.
+ * Used by [drawCartesianGrid] to create the grid pattern.
+ *
+ * @param cx Center X coordinate
+ * @param cy Center Y coordinate
+ * @param radius Radar radius for clipping
+ * @param x1 Start X
+ * @param y1 Start Y
+ * @param x2 End X
+ * @param y2 End Y
+ * @param gridColor Color for the visible segment
  */
 private fun DrawScope.drawGridSegment(
     cx: Float, cy: Float, radius: Float,
@@ -558,7 +618,15 @@ private fun DrawScope.drawGridSegment(
 }
 
 /**
- * Draws radar ticks
+ * Draws tick marks on the radar circle.
+ *
+ * Draws ticks every 10°, with major ticks every 30° (thicker).
+ * Ticks are drawn inward from the circle edge.
+ *
+ * @param cx Center X coordinate
+ * @param cy Center Y coordinate
+ * @param radius Radar circle radius
+ * @param tickColor Color for tick marks
  */
 private fun DrawScope.drawTicks(cx: Float, cy: Float, radius: Float, tickColor: Color) {
     for (deg in 0 until 360 step 10) {
@@ -578,7 +646,16 @@ private fun DrawScope.drawTicks(cx: Float, cy: Float, radius: Float, tickColor: 
 }
 
 /**
- * Draws radar sweep tail
+ * Draws the sweep trail (fading arc behind the sweep line).
+ *
+ * Creates a gradient arc that fades from transparent to the trail color.
+ * The trail covers 80° behind the current sweep angle.
+ *
+ * @param cx Center X coordinate
+ * @param cy Center Y coordinate
+ * @param radius Radar circle radius
+ * @param sweepAngle Current sweep angle in degrees
+ * @param sweepTrailColor Color for the trail (with alpha)
  */
 private fun DrawScope.drawSweepTrail(cx: Float, cy: Float, radius: Float, sweepAngle: Float,
                                      sweepTrailColor: Color) {
@@ -597,7 +674,20 @@ private fun DrawScope.drawSweepTrail(cx: Float, cy: Float, radius: Float, sweepA
 }
 
 /**
- * Draws arrow
+ * Draws a directional arrow on the compass ring.
+ *
+ * Creates a triangular arrow pointing inward or outward from the ring.
+ * Used for:
+ * - North indicator (red, outward)
+ * - Following direction arrow (yellow, inward)
+ *
+ * @param cx Center X coordinate
+ * @param cy Center Y coordinate
+ * @param outerR Outer radius (compass ring)
+ * @param radarR Inner radius (radar circle)
+ * @param angleDeg Angle in degrees where arrow should point (0° = North)
+ * @param direction Whether arrow points OUTWARD or INWARD
+ * @param color Arrow fill color
  */
 private fun DrawScope.drawArrow(cx: Float, cy: Float, outerR: Float, radarR: Float,
                                 angleDeg: Float, direction: ArrowDirection, color: Color

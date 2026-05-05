@@ -2,6 +2,15 @@ package com.ameraldo.radar.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+/**
+ * Color definitions for the Radar application.
+ *
+ * Includes Material Design 3 color tokens and custom colors
+ * (e.g., red500, green500) used for radar blips and indicators.
+ *
+ * Color schemes are defined in [Theme.kt] using these values.
+ */
+
 // Material colors
 val red500Color         = Color(0xFFF44336)
 val pink500Color        = Color(0xFFE91E63)

@@ -29,7 +29,7 @@ Radar is an Android application for recording GPS points to create routes, savin
 | **Target SDK** | 36 (Android 16) |
 | **Language** | Kotlin |
 | **Build System** | Gradle with Kotlin DSL |
-| **Architecture** | MVVM with Hilt Dependency Injection |
+| **Architecture** | MVVM with Manual Dependency Injection |
 | **UI Framework** | Jetpack Compose |
 | **Database** | Room |
 | **Location Services** | Google Play Services Location |
@@ -42,11 +42,12 @@ Radar/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com.ameraldo.radar/
+│   │   │   │   ├── MainActivity           # Main activity, service binding, PiP mode
 │   │   │   │   ├── service/         # LocationService (foreground service)
-│   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings)
-│   │   │   │   ├── data/            # Room database, DAOs, entities
+│   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
+│   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore
 │   │   │   │   ├── ui/              # Compose UI (screens, components, theme)
-│   │   │   │   └── utils/           # Utility functions
+│   │   │   │   └── utils/           # Utility functions (LocationUtils)
 │   │   │   ├── res/                 # Android resources
 │   │   │   └── AndroidManifest.xml
 │   │   ├── test/                    # Unit tests
@@ -61,25 +62,51 @@ Radar/
 ## Documentation
 
 ### Architecture
+
 - [Architecture Overview](architecture/overview.md) - System architecture and component design
 - [Data Flow](architecture/data-flow.md) - Data flow between layers
 
 ### API Reference
+
+**Services**
 - [LocationService](api/LocationService.md) - Foreground service for GPS tracking
+- [MainActivity](api/MainActivity.md) - Main activity, service binding, PiP mode
+
+**ViewModels**
 - [LocationViewModel](api/LocationViewModel.md) - Location state management
 - [RouteViewModel](api/RouteViewModel.md) - Route management
 - [SensorViewModel](api/SensorViewModel.md) - Compass/sensor handling
 - [SettingsViewModel](api/SettingsViewModel.md) - App settings
+- [UIStateViewModel](api/UIStateViewModel.md) - UI state (navigation, PiP)
+
+**Data Layer**
 - [RouteDao](api/RouteDao.md) - Database DAO
 - [AppSettings](api/AppSettings.md) - DataStore preferences
+- [ServiceState](api/ServiceState.md) - Service state persistence
+- [RouteEntity](api/RouteEntity.md) - Database entities
+- [LocationState](api/LocationState.md) - Location data model
+- [SatelliteBlip](api/SatelliteBlip.md) - Satellite data model
+- [LocationError](api/LocationError.md) - Error types
+- [LocationUtils](api/LocationUtils.md) - Polar coordinate conversion
+
+**Components**
+- [RadarView](api/RadarView.md) - Canvas radar visualization
+- [RangeSelector](api/RangeSelector.md) - Radar range selector
+- [RouteCard](api/RouteCard.md) - Route controls
+- [CurrentLocationCard](api/CurrentLocationCard.md) - Location display
+- [SatellitesList](api/SatellitesList.md) - Satellite details
+- [RoutesList](api/RoutesList.md) - Route list
+- [ConfirmationDialog](api/ConfirmationDialog.md) - Reusable dialog
 
 ### Screens
+
 - [Home Screen](screens/home.md) - Recording controls, satellite info
 - [Radar Screen](screens/radar.md) - Map visualization, navigation
 - [Routes Screen](screens/routes.md) - Saved routes management
 - [Settings Screen](screens/settings.md) - App configuration
 
 ### Guides
+
 - [Setup Guide](guides/setup.md) - Development environment setup
 - [Build Instructions](guides/build.md) - Building the app
 - [Testing Guide](guides/testing.md) - Running tests

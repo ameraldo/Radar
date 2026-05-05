@@ -25,6 +25,22 @@ import com.ameraldo.radar.viewmodel.SettingsViewModel
 import com.ameraldo.radar.viewmodel.UIStateViewModel
 import kotlin.collections.emptyList
 
+/**
+ * Radar screen composable.
+ *
+ * Displays the main radar visualization with recorded/following points,
+ * current location card, range selector, and route controls.
+ *
+ * @param modifier Modifier for styling
+ * @param locationViewModel For location/recording/following state
+ * @param sensorViewModel For compass heading
+ * @param settingsViewModel For radar range and distance units
+ * @param uiStateViewModel For pending stop actions
+ * @param recordedPolarPoints Points to display (recording mode)
+ * @param followingPolarPoints Points to display (following mode)
+ * @param onFollowingComplete Callback when following is complete
+ * @param onRequestPermission Callback to request location permissions
+ */
 @Composable
 fun RadarScreen(
     modifier: Modifier = Modifier,

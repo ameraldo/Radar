@@ -17,6 +17,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ameraldo.radar.viewmodel.RouteViewModel
 
+/**
+ * Routes screen composable.
+ *
+ * Displays saved routes or empty state message.
+ * Allows users to follow a route or delete it.
+ *
+ * @param modifier Modifier for styling
+ * @param routesViewModel For accessing saved routes
+ * @param onFollowRoute Callback with route ID when user wants to follow
+ */
 @Composable
 fun RoutesScreen(
     modifier: Modifier = Modifier,

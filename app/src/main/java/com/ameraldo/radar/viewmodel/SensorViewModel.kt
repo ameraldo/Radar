@@ -31,28 +31,40 @@ import kotlinx.coroutines.flow.StateFlow
 class SensorViewModel(application: Application) : AndroidViewModel(application) {
     private val sensorManager =
         application.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+
     private val _headingDegrees = MutableStateFlow(0f)
-    private val gravity    = FloatArray(3)
-    private val geomagnetic = FloatArray(3)
+
+    // Sensor data arrays
+    private val gravity     = FloatArray(3)    // Accelerometer: X, Y, Z (m/s²) - includes gravity
+    private val geomagnetic = FloatArray(3)    // Magnetometer: X, Y, Z (μT) - earth's magnetic field
+
     private val accelerometer: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     private val magnetometer: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
     private var sensorsAvailable = false
+
     private val sensorListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             when (event.sensor.type) {
                 Sensor.TYPE_ACCELEROMETER ->
+                    // Copy accelerometer values (gravity + device acceleration)
                     System.arraycopy(event.values, 0, gravity, 0, gravity.size)
                 Sensor.TYPE_MAGNETIC_FIELD ->
+                    // Copy magnetometer values (earth's magnetic field)
                     System.arraycopy(event.values, 0, geomagnetic, 0, geomagnetic.size)
             }
 
-            val r = FloatArray(9)
-            val i = FloatArray(9)
+            // Rotation matrix: transforms device coordinates to world coordinates
+            val r = FloatArray(9)   // 3x3 rotation matrix
+            val i = FloatArray(9)   // Inclination matrix
+
             if (SensorManager.getRotationMatrix(r, i, gravity, geomagnetic)) {
-                val orientation = FloatArray(3)
+                val orientation = FloatArray(3) // azimuth, pitch, roll
                 SensorManager.getOrientation(r, orientation)
-                // orientation[0] = azimuth in radians, convert to degrees
+
+                // orientation[0] = azimuth (radians): 0=North, π/2=East, π=South, -π/2=West
                 val azimuth = Math.toDegrees(orientation[0].toDouble()).toFloat()
+
+                // Normalize to 0-360° for compass display
                 _headingDegrees.value = (azimuth + 360f) % 360f
             }
         }
@@ -70,7 +82,8 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
     init {
         sensorsAvailable = accelerometer != null && magnetometer != null
         if (!sensorsAvailable) {
-            // TODO: Handle case when accelerometer and magnetometer sensors are unavailable
+            // TODO:
+            // Log warning or show UI message that compass won't work
         }
     }
 
@@ -84,7 +97,7 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         sensorManager.registerListener(
             sensorListener,
             accelerometer!!,
-            SensorManager.SENSOR_DELAY_UI
+            SensorManager.SENSOR_DELAY_UI  // UI rate is sufficient for compass
         )
         sensorManager.registerListener(
             sensorListener,
@@ -101,6 +114,10 @@ class SensorViewModel(application: Application) : AndroidViewModel(application) 
         sensorManager.unregisterListener(sensorListener)
     }
 
+    /**
+     * Cleans up sensor listeners when ViewModel is destroyed.
+     * Called by the system when ViewModel is no longer in use.
+     */
     override fun onCleared() {
         super.onCleared()
         stopListening()

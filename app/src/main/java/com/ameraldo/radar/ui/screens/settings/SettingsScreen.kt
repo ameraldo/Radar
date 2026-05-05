@@ -24,6 +24,16 @@ import androidx.compose.ui.unit.dp
 import com.ameraldo.radar.data.DistanceUnits
 import com.ameraldo.radar.viewmodel.SettingsViewModel
 
+/**
+ * Settings screen composable.
+ *
+ * Allows users to configure:
+ * - Distance units (Metric/Imperial)
+ * - Maximum radar range
+ *
+ * @param modifier Modifier for styling
+ * @param settingsViewModel For reading/updating settings
+ */
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,

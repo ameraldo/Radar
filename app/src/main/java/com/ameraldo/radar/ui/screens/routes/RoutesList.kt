@@ -36,6 +36,15 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Displays a list of saved routes with follow/delete actions.
+ *
+ * Each item shows route name, date, point count, and delete button.
+ * Clicking a route starts following it.
+ *
+ * @param routesViewModel For accessing saved routes
+ * @param onFollowRoute Callback with route ID when user wants to follow
+ */
 @Composable
 fun RoutesList(
     routesViewModel: RouteViewModel,
@@ -73,6 +82,16 @@ fun RoutesList(
     }
 }
 
+/**
+ * Displays a single route item in the list.
+ *
+ * Shows route name, formatted date, point count, and delete button.
+ * Clicking the item triggers following the route.
+ *
+ * @param route The route data to display
+ * @param onClick Callback when item is clicked (start following)
+ * @param onDelete Callback with route ID when delete is requested
+ */
 @Composable
 private fun RoutesListItem(
     route: RouteEntity,

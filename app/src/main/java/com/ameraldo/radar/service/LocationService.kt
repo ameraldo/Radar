@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
 /**
  * Foreground service for GPS tracking, route recording, and route following.
  *
- * This service is the single source of truth for:
+ * This service is the **single source of truth** for:
  * - Current GPS location state (coordinates, accuracy, satellites)
  * - Recording state and route data
  * - Following state and remaining points
@@ -62,10 +62,13 @@ import kotlinx.coroutines.launch
  * The service runs as a foreground service to ensure reliable GPS tracking
  * even when the app is in the background or screen is locked.
  *
+ * State persistence is handled via [ServiceState] (DataStore) to survive
+ * service restarts. The service restores its state in [onStartCommand].
+ *
  * ## Usage
  * ```
  * // Start recording
- * val intent = LocationService.createStartRecordingIntent(context, routeName)
+ * val intent = LocationService.createStartRecordingIntent(context, "My Route")
  * context.startForegroundService(intent)
  *
  * // Start following
@@ -79,8 +82,8 @@ import kotlinx.coroutines.launch
  * - [isFollowing]: Whether following a saved route
  * - [currentRouteId]: ID of current route (recording or following)
  * - [currentRouteName]: Name of current route
- * - [currentRoutePoints]: Points for current route (from Room)
- * - [followingRemainingPoints]: Points yet to be reached while following
+ * - [currentRoutePoints]: Points for current route (Room-backed Flow)
+ * - [followingRemainingPoints]: Points yet to be reached while following (in-memory)
  */
 class LocationService : Service() {
     private lateinit var database: AppDatabase
@@ -88,13 +91,16 @@ class LocationService : Service() {
     private lateinit var serviceState: ServiceState
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
-
+    /**
+     * Coroutine scope for service-level async operations.
+     * Uses [SupervisorJob] for fault tolerance (child failure doesn't cancel siblings)
+     * and [Dispatchers.Default] for database/computation work.
+     */
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private var serviceBound = false // Track binding state.
+    /** Flag to track whether the service is bound to an activity */
+    private var serviceBound = false
 
-    /* *** State Flows *** */
-
-    // Core state flows (initialized immediately; no lateinit needed)
+    // Core mutable state flows (initialized immediately; no lateinit needed)
     private val _locationState = MutableStateFlow(LocationState())
     private val _isRecording = MutableStateFlow(false)
     private val _isFollowing = MutableStateFlow(false)
@@ -109,7 +115,12 @@ class LocationService : Service() {
     val currentRouteId: StateFlow<Long?> = _currentRouteId
     val currentRouteName: StateFlow<String?> = _currentRouteName
 
-    // Room-backed flow: emits updated point list whenever the database changes
+    /**
+     * Room-backed flow that emits updated point list whenever the database changes.
+     * Uses [flatMapLatest] to react to [currentRouteId] changes:
+     * - When route ID changes, switches to observe the new route's points
+     * - Returns empty list if no route is active
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     val currentRoutePoints: StateFlow<List<RecordedPointEntity>> = currentRouteId
         .flatMapLatest { routeId ->
@@ -121,22 +132,30 @@ class LocationService : Service() {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-
-    // Direct flow (in-memory) for following remaining points
+    /**
+     * In-memory flow for points remaining to be reached during following.
+     * Unlike [currentRoutePoints], this is NOT Room-backed because:
+     * - Points are consumed (removed) as they are reached
+     * - Order is reversed (start point first) for efficient [List.drop] operations
+     */
     val followingRemainingPoints: StateFlow<List<RecordedPointEntity>> = _followingRemainingPoints.asStateFlow()
-
-    // Local tracking for synchronous callback (NOT duplicating Room data)
-    // Only tracks: last recorded coordinates (2 Doubles) + sequence counter (1 Int)
+    /**
+     * Local tracking variables for synchronous distance checks in location callback.
+     * These are NOT duplicating Room data - they provide fast access for:
+     * - [lastRecordedLat], [lastRecordedLon]: Last recorded coordinates for distance calculation
+     * - [sequenceCounter]: Next sequence number for new points
+     */
     private var lastRecordedLat: Double? = null
     private var lastRecordedLon: Double? = null
     private var sequenceCounter = 0
 
-    // Callbacks
+    /** Callback for receiving location updates from FusedLocationProviderClient */
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             result.lastLocation?.let { handleLocationUpdate(it) }
         }
     }
+    /** Callback for receiving GNSS satellite status updates from LocationManager */
     private val gnssCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {
             val blips = (0 until status.satelliteCount).map { i ->
@@ -177,7 +196,10 @@ class LocationService : Service() {
     private val CHANNEL_ID = "location_tracking_channel"
     private val NOTIFICATION_ID = 1
 
-    // Override functions
+    /**
+     * Initializes service dependencies: database, DAOs, service state, and location clients.
+     * Also creates the notification channel required for foreground service.
+     */
     override fun onCreate() {
         super.onCreate()
 
@@ -189,6 +211,12 @@ class LocationService : Service() {
 
         createNotificationChannel()
     }
+    /**
+     * Handles incoming intent actions.
+     * Restores state from [ServiceState] and processes the intent action.
+     *
+     * @return [START_STICKY] to restart service if killed by system
+     */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         coroutineScope.launch {
             restoreStateIfNeeded()
@@ -204,43 +232,81 @@ class LocationService : Service() {
         }
         return START_STICKY
     }
+    /**
+     * Called when an activity binds to this service.
+     * Sets [serviceBound] flag to true and returns the binder.
+     */
     override fun onBind(intent: Intent?): IBinder {
         serviceBound = true
         return binder
     }
+    /**
+     * Called when a client re-binds to the service after all clients unbound.
+     * Sets [serviceBound] flag to true.
+     */
     override fun onRebind(intent: Intent?) {
         super.onRebind(intent)
         serviceBound = true
     }
+    /**
+     * Called when all clients unbind from the service.
+     * Sets [serviceBound] to false and checks if service should stop.
+     *
+     * @return true to allow rebinding without re-creating the service
+     */
     override fun onUnbind(intent: Intent?): Boolean {
         serviceBound = false
         checkAndStopIfIdle()
         return true  // Return true to allow to rebind
     }
+    /**
+     * Cleans up resources when service is destroyed.
+     * Stops location updates and cancels the coroutine scope.
+     */
     override fun onDestroy() {
         super.onDestroy()
         stopLocationUpdates()
         coroutineScope.cancel()
     }
 
+    // Binder
     private val binder = LocalBinder()
     inner class LocalBinder : Binder() {
         fun getService(): LocationService = this@LocationService
     }
 
-    // Public method for binder-based stop (called from ViewModel)
+    /**
+     * Stops recording via binder call from ViewModel.
+     * Called when activity is bound to service (vs notification intent).
+     *
+     * @param stopService If true, stops the foreground service after stopping recording
+     */
     fun stopRecordingViaBinder() {
         stopRecording(true)  // Stop service when called via binder
     }
-    // Public method for binder-based stop following
+    /**
+     * Stops following via binder call from ViewModel.
+     * Called when activity is bound to service (vs notification intent).
+     *
+     * @param stopService If true, stops the foreground service after stopping following
+     */
     fun stopFollowingViaBinder() {
         stopFollowing(true)  // Stop service when called via binder
     }
-    // Public method that's used to set the permission error (called from ViewModel)
+    /**
+     * Sets a permission error state (called from ViewModel).
+     * Used when location permission is denied to update the UI state.
+     *
+     * @param error The permission error to set
+     */
     fun setPermissionError(error: LocationError) {
         _locationState.value = _locationState.value.copy(error = error, isLoading = false)
     }
-    // Delete the current route after recording has stopped (called from ViewModel)
+    /**
+     * Deletes the current route and clears all related state.
+     * Called when user chooses to discard (not save) a recorded route.
+     * Clears recording/following state in [ServiceState] as well.
+     */
     fun deleteCurrentRoute() {
         coroutineScope.launch {
             val routeId = _currentRouteId.value ?: return@launch
@@ -344,6 +410,15 @@ class LocationService : Service() {
         }
     }
 
+    /**
+     * Restores service state from [ServiceState] (DataStore) after service restart.
+     * Called in [onStartCommand] to handle service recreation by the system.
+     *
+     * Restores: recording state (with route ID, name, point tracking)
+     * and following state (with remaining points loaded in reverse order).
+     * If neither recording nor following is active and no clients are bound,
+     * stops the service to avoid orphaned foreground services.
+     */
     private suspend fun restoreStateIfNeeded() {
         val isRecording = serviceState.isRecording.first()
         val recordingRouteId = serviceState.recordingRouteId.first()
@@ -382,6 +457,17 @@ class LocationService : Service() {
         }
     }
 
+    /**
+     * Starts route recording.
+     * Stops any active following first (mutually exclusive with recording).
+     *
+     * 1. Sets recording state to true
+     * 2. Creates notification and starts foreground service
+     * 3. Generates route name and saves route to database
+     * 4. Starts location updates
+     *
+     * @param intent Contains [EXTRA_ROUTE_NAME] for the route name
+     */
     private fun startRecording(intent: Intent) {
         if (_isFollowing.value) stopFollowing(false) // Stop following if active
         val routeName = intent.getStringExtra(EXTRA_ROUTE_NAME) ?: ""
@@ -396,6 +482,16 @@ class LocationService : Service() {
         generateRouteNameAndSave(routeName)
         startLocationUpdates()
     }
+    /**
+     * Stops route recording.
+     *
+     * Resets tracking variables, saves route metadata (end time, point count),
+     * and clears recording state in [ServiceState].
+     *
+     * @param stopService If true, stops foreground service and location updates
+     *                    (used when called from notification or ViewModel).
+     *                    If false, keeps service running (used when switching to following).
+     */
     private fun stopRecording(stopService: Boolean = true) {
         _isRecording.value = false
         // Reset tracking
@@ -414,6 +510,18 @@ class LocationService : Service() {
             stopSelf()
         }
     }
+    /**
+     * Starts following a saved route.
+     * Stops any active recording first (mutually exclusive with following).
+     *
+     * 1. Sets following state to true
+     * 2. Creates notification and starts foreground service
+     * 3. Loads route points (reversed for efficient consumption)
+     * 4. Starts location updates
+     * 5. Saves following state to [ServiceState]
+     *
+     * @param intent Contains [EXTRA_ROUTE_ID] for the route to follow
+     */
     private fun startFollowing(intent: Intent) {
         if (_isRecording.value) stopRecording(false) // Stop recording if active
         val routeId = intent.getLongExtra(EXTRA_ROUTE_ID, -1)
@@ -434,6 +542,15 @@ class LocationService : Service() {
             stopSelf()
         }
     }
+    /**
+     * Stops following the current route.
+     *
+     * Clears remaining points and following state in [ServiceState].
+     *
+     * @param stopService If true, stops foreground service and location updates
+     *                    (used when called from notification or ViewModel).
+     *                    If false, keeps service running (used when switching to recording).
+     */
     private fun stopFollowing(stopService: Boolean = true) {
         _isFollowing.value = false
         _followingRemainingPoints.value = emptyList()
@@ -446,6 +563,15 @@ class LocationService : Service() {
             stopSelf()
         }
     }
+    /**
+     * Generates a route name (if blank) and saves the new route to database.
+     *
+     * Creates a [RouteEntity] with timestamp-based name (format: "Route YYYY-MM-DD HH:MM"),
+     * inserts it into Room, and initializes tracking variables.
+     * Also saves the first point at current location if available.
+     *
+     * @param baseRouteName User-provided name, or blank to use auto-generated name
+     */
     private fun generateRouteNameAndSave(baseRouteName: String) {
         coroutineScope.launch {
             try {
@@ -485,6 +611,12 @@ class LocationService : Service() {
             }
         }
     }
+    /**
+     * Saves current route metadata to database.
+     *
+     * Updates the route's end time and point count.
+     * Called when stopping recording to finalize the route.
+     */
     private fun saveCurrentRoute() {
         coroutineScope.launch {
             val routeId = _currentRouteId.value ?: return@launch
@@ -496,6 +628,14 @@ class LocationService : Service() {
             ))
         }
     }
+    /**
+     * Loads route points for following and reverses the order.
+     *
+     * Points are reversed so the first point to reach is at index 0,
+     * allowing efficient [List.drop] operations as points are reached.
+     *
+     * @param routeId ID of the route to load
+     */
     private fun loadRouteForFollowing(routeId: Long) {
         coroutineScope.launch {
             val points = routeDao.getPointsForRoute(routeId).first()
@@ -504,12 +644,23 @@ class LocationService : Service() {
             }
         }
     }
+    /**
+     * Checks if the service is idle (not recording, not following, no bound clients).
+     * If idle, stops location updates and the service itself.
+     */
     private fun checkAndStopIfIdle() {
         if (!_isRecording.value && !_isFollowing.value && !serviceBound) {
             stopLocationUpdates()
             stopSelf()
         }
     }
+    /**
+     * Starts receiving location and GNSS status updates.
+     *
+     * Checks for Google Play Services availability first.
+     * Requests location updates at HIGH_ACCURACY with 2000ms interval.
+     * Registers GNSS callback for satellite tracking.
+     */
     private fun startLocationUpdates() {
         val googlePlayServicesAvailable = GoogleApiAvailability.getInstance()
             .isGooglePlayServicesAvailable(applicationContext) == ConnectionResult.SUCCESS
@@ -534,11 +685,22 @@ class LocationService : Service() {
             stopSelf()
         }
     }
+    /**
+     * Stops location and GNSS status updates.
+     * After stopping updates, checks if service should stop.
+     */
     private fun stopLocationUpdates() {
         fusedLocationClient.removeLocationUpdates(locationCallback)
         locationManager.unregisterGnssStatusCallback(gnssCallback)
         checkAndStopIfIdle()
     }
+    /**
+     * Handles a new location update from FusedLocationProviderClient.
+     *
+     * Updates the location state (coordinates, accuracy) and delegates to:
+     * - [handleRecordingLocationUpdate] if currently recording
+     * - [handleFollowingLocationUpdate] if currently following
+     */
     private fun handleLocationUpdate(location: Location) {
         _locationState.value = _locationState.value.copy(
             latitude = location.latitude,
@@ -553,6 +715,15 @@ class LocationService : Service() {
             handleFollowingLocationUpdate(location)
         }
     }
+    /**
+     * Handles a location update during active recording.
+     *
+     * Checks if the distance from the last recorded point is >= 5 meters.
+     * If true, creates a new [RecordedPointEntity] and inserts it into Room.
+     * Updates the local tracking variables for fast synchronous distance checks.
+     *
+     * @param location The new GPS location from FusedLocationProviderClient
+     */
     private fun handleRecordingLocationUpdate(location: Location) {
         // Use tracked coordinates for distance check (synchronous)
         val distanceOk = if (lastRecordedLat == null || lastRecordedLon == null) true // First point
@@ -579,6 +750,15 @@ class LocationService : Service() {
             sequenceCounter++
         }
     }
+    /**
+     * Handles a location update during active following.
+     *
+     * Checks if the next point to follow is within 5 meters of current location.
+     * If within range, removes the point from [_followingRemainingPoints].
+     * If no points remain, automatically stops following.
+     *
+     * @param location The new GPS location from FusedLocationProviderClient
+     */
     private fun handleFollowingLocationUpdate(location: Location) {
         val nextPoint = _followingRemainingPoints.value.firstOrNull()
         if (nextPoint != null &&
@@ -597,6 +777,15 @@ class LocationService : Service() {
             }
         }
     }
+    /**
+     * Builds a foreground service notification.
+     *
+     * Creates a low-priority, ongoing notification with a stop action.
+     * The stop action varies based on current state (recording vs following).
+     *
+     * @param text The notification content text (e.g., "Recording route")
+     * @return The built Notification object
+     */
     private fun buildNotification(text: String): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
@@ -614,6 +803,15 @@ class LocationService : Service() {
             )
             .build()
     }
+    /**
+     * Creates a PendingIntent for notification actions (stop recording/following).
+     *
+     * The intent is routed to [MainActivity] which then delegates to the appropriate
+     * ViewModel method based on the action type.
+     *
+     * @param actionType The action to perform (ACTION_STOP_RECORDING or ACTION_STOP_FOLLOWING)
+     * @return The created PendingIntent
+     */
     private fun createPendingIntentForAction(actionType: String): PendingIntent {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -627,6 +825,12 @@ class LocationService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
     }
+    /**
+     * Creates the notification channel for the foreground service.
+     *
+     * Required for Android O+. The channel is set to LOW importance
+     * to avoid making sound or popping up on the user's device.
+     */
     private fun createNotificationChannel() {
         val name = getString(R.string.channel_name_location_tracking)
         val descriptionText = getString(R.string.channel_description_location_tracking)

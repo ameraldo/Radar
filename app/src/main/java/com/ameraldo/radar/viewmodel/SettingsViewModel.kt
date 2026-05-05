@@ -114,9 +114,10 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
 
     /**
      * Generates a list of 4 range values (25%, 50%, 75%, 100% of max).
+     * Used by RangeSelector to display available radar range options.
      *
-     * @param maximum Maximum range value
-     * @return List of 4 range values
+     * @param maximum Maximum range value (in meters or feet)
+     * @return List of 4 Float values representing range increments
      */
     fun generateRangeList(maximum: Int): List<Float> {
         val length = 4

@@ -8,7 +8,7 @@ The Radar Screen shows the radar visualization with recorded route points or rou
 
 ## Location
 
-**File**: `app/src/main/java/com/ameraldo/radar/ui/screens/radar/RadarScreen.kt`
+**File**: `app/src/main/java/com.ameraldo.radar/ui/screens/radar/RadarScreen.kt`
 
 ## Features
 
@@ -27,7 +27,7 @@ The Radar Screen shows the radar visualization with recorded route points or rou
 ### Range Selector
 - Adjustable radar display range
 - Options based on settings (metric/imperial)
-- Slider for quick range adjustment
+- Segmented button for quick range adjustment
 
 ### Route Card
 - Shows current route info:
@@ -58,10 +58,10 @@ When navigating back along a route:
 
 | Component | Description |
 |-----------|-------------|
-| `RadarView` | Radar visualization with points |
-| `CurrentLocationCard` | Location coordinates |
-| `RangeSelector` | Radar range adjustment |
-| `RouteCard` | Route info and actions |
+| [RadarView](../api/RadarView.md) | Radar visualization with points |
+| [CurrentLocationCard](../api/CurrentLocationCard.md) | Location coordinates |
+| [RangeSelector](../api/RangeSelector.md) | Radar range adjustment |
+| [RouteCard](../api/RouteCard.md) | Route info and actions |
 
 ## State Dependencies
 
@@ -71,17 +71,20 @@ When navigating back along a route:
 | `isRecording` | LocationViewModel | Recording mode |
 | `isFollowing` | LocationViewModel | Following mode |
 | `followingRemainingPoints` | LocationViewModel | Points to reach |
+| `recordedPolarPoints` | RadarApp | Converted for display |
+| `followingPolarPoints` | RadarApp | Converted for display |
 | `headingDegrees` | SensorViewModel | Radar rotation |
 | `distanceUnits` | SettingsViewModel | Display units |
 | `maxRange` | SettingsViewModel | Max range options |
 | `selectedRange` | SettingsViewModel | Current display range |
+| `pendingStopAction` | UIStateViewModel | Notification stop actions |
 
 ## User Interactions
 
 1. **Start Recording**: Tap FAB on HomeScreen → navigates here
 2. **Stop Recording**: Tap stop in RouteCard
 3. **Start Following**: Select route from RoutesScreen → navigates here
-4. **Adjust Range**: Use RangeSelector slider
+4. **Adjust Range**: Use RangeSelector buttons
 
 ## Display Formats
 
@@ -96,6 +99,8 @@ When navigating back along a route:
 ## Related Documentation
 
 - [RadarView Component](../api/RadarView.md) - Radar visualization
-- [RangeSelector](RangeSelector.md) - Range selector component
-- [RouteCard](RouteCard.md) - Route info card
+- [RangeSelector](../api/RangeSelector.md) - Range selector component
+- [RouteCard](../api/RouteCard.md) - Route info card
+- [ConfirmationDialog](../api/ConfirmationDialog.md) - Confirmation dialogs
 - [LocationViewModel](../api/LocationViewModel.md) - Location state
+- [UIStateViewModel](../api/UIStateViewModel.md) - UI state management

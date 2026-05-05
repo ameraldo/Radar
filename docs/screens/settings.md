@@ -86,4 +86,4 @@ When changing distance units:
 
 - [SettingsViewModel](../api/SettingsViewModel.md) - Settings management
 - [AppSettings](../api/AppSettings.md) - DataStore preferences
-- [DistanceUnits Enum](../api/AppSettings-detailed.md) - Unit definitions
+- [AppSettings](../api/AppSettings.md) - Unit definitions
