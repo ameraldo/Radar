@@ -42,7 +42,7 @@ Radar/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com.ameraldo.radar/
-│   │   │   │   ├── MainActivity           # Main activity, service binding, PiP mode
+│   │   │   │   ├── MainActivity     # Main activity, service binding, PiP mode
 │   │   │   │   ├── service/         # LocationService (foreground service)
 │   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
 │   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore

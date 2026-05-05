@@ -19,7 +19,7 @@ Designed for outdoor use where traditional navigation (Google/Apple Maps) is una
 - **Target SDK**: 36
 - **Language**: Kotlin
 - **Build System**: Gradle with Kotlin DSL
-- **Architecture**: MVVM with Hilt dependency injection
+- **Architecture**: MVVM with Manual Dependency Injection
 - **UI Framework**: Jetpack Compose
 - **Database**: Room
 - **Location Services**: Google Play Services Location
@@ -27,12 +27,12 @@ Designed for outdoor use where traditional navigation (Google/Apple Maps) is una
 - **Satellite Tracking**: GPS satellite visibility display
 
 ## Screenshots
-<p float="left">
-  <img src="screenshots/home.jpeg" width="200"  alt="home"/>
-  <img src="screenshots/radar_record.jpeg" width="200" alt="radar_record"/>
-  <img src="screenshots/radar_follow.jpeg" width="200" alt="radar_follow"/>
-  <img src="screenshots/routes.jpeg" width="200" alt="routes"/>
-</p>
+<div align="center">
+  <img src="docs/assets/screenshots/home.jpeg" width="200" alt="Home Screen"/>
+  <img src="docs/assets/screenshots/radar_record.jpeg" width="200" alt="Radar Recording"/>
+  <img src="docs/assets/screenshots/radar_follow.jpeg" width="200" alt="Radar Following"/>
+  <img src="docs/assets/screenshots/routes.jpeg" width="200" alt="Routes"/>
+</div>
 
 ## Project Structure
 
@@ -41,38 +41,79 @@ Radar/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com.ameraldo.radar/     # Application code
-│   │   │   ├── res/                         # Resources
-│   │   │   └── AndroidManifest.xml          # App manifest
-│   │   ├── test/                            # Unit tests
-│   │   └── androidTest/                     # Instrumented tests
-│   ├── build.gradle.kts                     # App module build config
-│   └── proguard-rules.pro                   # ProGuard rules
-├── build.gradle.kts                         # Project-level build config
-├── settings.gradle.kts                      # Settings and repositories
-├── gradle.properties                        # Gradle properties
-└── README.md                                # This file
+│   │   │   ├── java/com.ameraldo.radar/
+│   │   │   │   ├── MainActivity     # Main activity, service binding, PiP mode
+│   │   │   │   ├── service/         # LocationService (foreground service)
+│   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
+│   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore
+│   │   │   │   ├── ui/              # Compose UI (screens, components, theme)
+│   │   │   │   └── utils/           # Utility functions (LocationUtils)
+│   │   │   ├── res/                 # Android resources
+│   │   │   └── AndroidManifest.xml
+│   │   ├── test/                    # Unit tests
+│   │   └── androidTest/             # Instrumented tests
+│   └── build.gradle.kts
+├── docs/                            # This documentation
+├── build.gradle.kts                 # Project-level build config
+├── settings.gradle.kts
+└── README.md
 ```
 
-## Dependencies
+## Documentation
 
-Key libraries used in this project:
+### Architecture
 
-- **AndroidX Core KTX**: Kotlin extensions for Android framework
-- **AndroidX Lifecycle**: Lifecycle-aware components
-- **Jetpack Compose**: Modern UI toolkit
-  - Compose BOM (Bill of Materials)
-  - UI, Graphics, Tooling Preview
-  - Material 3 and Material 3 Icons Extended
-  - Foundation Layout
-  - Adaptive Navigation Suite
-- **Android Room**: Local persistence library
-- **Google Play Services Location**: Location APIs
-- **Hilt**: Dependency injection (via KSP)
-- **Testing**: JUnit, Espresso, Compose UI Testing
+- [Architecture Overview](docs/architecture/overview.md) - System architecture and component design
+- [Data Flow](docs/architecture/data-flow.md) - Data flow between layers
+
+### API Reference
+
+**Services**
+- [LocationService](docs/api/LocationService.md) - Foreground service for GPS tracking
+- [MainActivity](docs/api/MainActivity.md) - Main activity, service binding, PiP mode
+
+**ViewModels**
+- [LocationViewModel](docs/api/LocationViewModel.md) - Location state management
+- [RouteViewModel](docs/api/RouteViewModel.md) - Route management
+- [SensorViewModel](docs/api/SensorViewModel.md) - Compass/sensor handling
+- [SettingsViewModel](docs/api/SettingsViewModel.md) - App settings
+- [UIStateViewModel](docs/api/UIStateViewModel.md) - UI state (navigation, PiP)
+
+**Data Layer**
+- [RouteDao](docs/api/RouteDao.md) - Database DAO
+- [AppSettings](docs/api/AppSettings.md) - DataStore preferences
+- [ServiceState](docs/api/ServiceState.md) - Service state persistence
+- [RouteEntity](docs/api/RouteEntity.md) - Database entities
+- [LocationState](docs/api/LocationState.md) - Location data model
+- [SatelliteBlip](docs/api/SatelliteBlip.md) - Satellite data model
+- [LocationError](docs/api/LocationError.md) - Error types
+- [LocationUtils](docs/api/LocationUtils.md) - Polar coordinate conversion
+
+**Components**
+- [RadarView](docs/api/RadarView.md) - Canvas radar visualization
+- [RangeSelector](docs/api/RangeSelector.md) - Radar range selector
+- [RouteCard](docs/api/RouteCard.md) - Route controls
+- [CurrentLocationCard](docs/api/CurrentLocationCard.md) - Location display
+- [SatellitesList](docs/api/SatellitesList.md) - Satellite details
+- [RoutesList](docs/api/RoutesList.md) - Route list
+- [ConfirmationDialog](docs/api/ConfirmationDialog.md) - Reusable dialog
+
+### Screens
+- [Home Screen](docs/screens/home.md) - Recording controls, satellite info
+- [Radar Screen](docs/screens/radar.md) - Map visualization, navigation
+- [Routes Screen](docs/screens/routes.md) - Saved routes management
+- [Settings Screen](docs/screens/settings.md) - App configuration
+
+### Guides
+- [Setup Guide](docs/guides/setup.md) - Development environment setup
+- [Build Instructions](docs/guides/build.md) - Building the app
+- [Testing Guide](docs/guides/testing.md) - Running tests
 
 ## Setup
 
+For detailed setup instructions, see the [Setup Guide](docs/guides/setup.md).
+
+Quick start:
 1. Clone the repository
 2. Open in Android Studio (Chipmunk or later recommended)
 3. Sync Gradle dependencies
@@ -89,6 +130,8 @@ This app works entirely offline using only GPS - no internet or cellular connect
 
 ## Building
 
+For detailed build instructions, see the [Build Instructions](docs/guides/build.md).
+
 To build the debug variant:
 ```bash
 ./gradlew assembleDebug
@@ -100,6 +143,8 @@ To build the release variant:
 ```
 
 ## Testing
+
+For detailed testing instructions, see the [Testing Guide](docs/guides/testing.md).
 
 Run unit tests:
 ```bash
@@ -113,4 +158,4 @@ Run instrumented tests:
 
 ## License
 
-This project is licensed under the GPL License - see the LICENSE.md file for details
+This project is licensed under the GPL License - see the [LICENSE.md](./LICENSE.md) file for details.
