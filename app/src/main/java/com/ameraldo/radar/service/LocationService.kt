@@ -780,8 +780,11 @@ class LocationService : Service() {
     /**
      * Builds a foreground service notification.
      *
-     * Creates a low-priority, ongoing notification with a stop action.
-     * The stop action varies based on current state (recording vs following).
+     * Creates an ongoing, non-dismissible notification with a stop action button and a
+     * content intent that opens the app when the notification body is tapped. The stop action
+     * varies based on current state (recording vs following). For Android O+ devices, the
+     * notification's visibility/behavior is controlled by the [createNotificationChannel] channel
+     * settings; for pre-O devices, it uses [NotificationCompat.PRIORITY_DEFAULT] (legacy setting).
      *
      * @param text The notification content text (e.g., "Recording route")
      * @return The built Notification object
@@ -791,7 +794,7 @@ class LocationService : Service() {
             .setContentTitle(getString(R.string.app_name))
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .addAction(
@@ -801,6 +804,7 @@ class LocationService : Service() {
                     if (_isRecording.value) ACTION_STOP_RECORDING else ACTION_STOP_FOLLOWING
                 )
             )
+            .setContentIntent(createContentPendingIntent())
             .build()
     }
     /**
@@ -826,15 +830,37 @@ class LocationService : Service() {
         )
     }
     /**
+     * Creates a PendingIntent for the notification's content tap action.
+     *
+     * When the user taps the notification body (not the Stop action button), this intent
+     * launches [MainActivity] and brings it to the foreground, even if the app is running
+     * in the background or another app is currently active.
+     *
+     * @return The created PendingIntent for the notification content tap
+     */
+    private fun createContentPendingIntent(): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        return PendingIntent.getActivity(
+            this,
+            0, // Unique request code (different from action intents)
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+    }
+
+    /**
      * Creates the notification channel for the foreground service.
      *
-     * Required for Android O+. The channel is set to LOW importance
-     * to avoid making sound or popping up on the user's device.
+     * Required for Android O+. The channel is set to [NotificationManager.IMPORTANCE_DEFAULT]
+     * to show a persistent status bar icon and play default notification sounds during active
+     * recording/following, without triggering intrusive heads-up popups.
      */
     private fun createNotificationChannel() {
         val name = getString(R.string.channel_name_location_tracking)
         val descriptionText = getString(R.string.channel_description_location_tracking)
-        val importance = NotificationManager.IMPORTANCE_LOW
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
         val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
             description = descriptionText
         }

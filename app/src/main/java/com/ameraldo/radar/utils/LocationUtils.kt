@@ -17,7 +17,7 @@ import kotlin.math.sqrt
  * @property distanceMeters Raw great-circle distance in meters (for display purposes)
  */
 data class PolarPoint(
-    val angleDeg: Float,
+    val angleDeg:       Float,
     val radiusFraction: Float,
     val distanceMeters: Float
 )
@@ -155,7 +155,7 @@ private fun toPolarPoint(
     val radiusFraction = (distanceMeters / radarRangeMeters).coerceAtMost(1f)
 
     return PolarPoint(
-        angleDeg      = bearingDeg,
+        angleDeg       = bearingDeg,
         radiusFraction = radiusFraction,
         distanceMeters = distanceMeters
     )
