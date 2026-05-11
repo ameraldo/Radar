@@ -1,38 +1,40 @@
-# Radar
+# Radar - GPS Route Tracking App
 
-Radar is an Android application for recording GPS points to create routes, saving them, and navigating back.
+Radar is an Android application for recording GPS points to create routes, saving them locally, and navigating back along those routes.
 Designed for outdoor use where traditional navigation (Google/Apple Maps) is unavailable due to poor cellular reception.
 
 ## Features
 
-- Route recording - capture GPS points as you move
-- Route saving - store routes locally for later use
-- Route following - navigate back along saved routes
-- Compass heading - uses device accelerometer + magnetometer
-- GPS satellite tracking - see satellite visibility
-- Picture-in-Picture mode - keeps radar visible while multitasking
-- Works fully offline - GPS only, no internet required
+- **Route Recording** - Capture GPS points as you move
+- **Route Saving** - Store routes locally for later use
+- **Route Following** - Navigate back along saved routes
+- **GPX Export** - Export routes as GPX 1.1 files
+- **Compass Heading** - Uses device accelerometer + magnetometer
+- **GPS Satellite Tracking** - See satellite visibility
+- **Picture-in-Picture Mode** - Keeps radar visible while multitasking
+- **Works Fully Offline** - GPS only, no internet required
+
+## Screenshots
+
+<div align="center">
+  <img src="assets/screenshots/home.jpeg" width="200" alt="Home Screen"/>
+  <img src="assets/screenshots/radar_record.jpeg" width="200" alt="Radar Recording"/>
+  <img src="assets/screenshots/radar_follow.jpeg" width="200" alt="Radar Following"/>
+  <img src="assets/screenshots/routes.jpeg" width="200" alt="Routes"/>
+</div>
 
 ## Technical Details
 
-- **Minimum SDK**: 35
-- **Target SDK**: 36
-- **Language**: Kotlin
-- **Build System**: Gradle with Kotlin DSL
-- **Architecture**: MVVM with Manual Dependency Injection
-- **UI Framework**: Jetpack Compose
-- **Database**: Room
-- **Location Services**: Google Play Services Location
-- **Sensors**: Accelerometer + Magnetometer (compass heading)
-- **Satellite Tracking**: GPS satellite visibility display
-
-## Screenshots
-<div align="center">
-  <img src="docs/assets/screenshots/home.jpeg" width="200" alt="Home Screen"/>
-  <img src="docs/assets/screenshots/radar_record.jpeg" width="200" alt="Radar Recording"/>
-  <img src="docs/assets/screenshots/radar_follow.jpeg" width="200" alt="Radar Following"/>
-  <img src="docs/assets/screenshots/routes.jpeg" width="200" alt="Routes"/>
-</div>
+| Aspect | Value |
+|--------|-------|
+| **Minimum SDK** | 35 (Android 15) |
+| **Target SDK** | 36 (Android 16) |
+| **Language** | Kotlin |
+| **Build System** | Gradle with Kotlin DSL |
+| **Architecture** | MVVM with Manual Dependency Injection |
+| **UI Framework** | Jetpack Compose |
+| **Database** | Room |
+| **Location Services** | Google Play Services Location |
 
 ## Project Structure
 
@@ -47,13 +49,13 @@ Radar/
 │   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
 │   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore
 │   │   │   │   ├── ui/              # Compose UI (screens, components, theme)
-│   │   │   │   └── utils/           # Utility functions (LocationUtils)
+│   │   │   │   └── utils/           # Utility functions (LocationUtils, GpxUtils)
 │   │   │   ├── res/                 # Android resources
 │   │   │   └── AndroidManifest.xml
 │   │   ├── test/                    # Unit tests
 │   │   └── androidTest/             # Instrumented tests
 │   └── build.gradle.kts
-├── docs/                            # This documentation
+├── docs/                            # Documentation
 ├── build.gradle.kts                 # Project-level build config
 ├── settings.gradle.kts
 └── README.md
@@ -88,6 +90,7 @@ Radar/
 - [SatelliteBlip](docs/api/SatelliteBlip.md) - Satellite data model
 - [LocationError](docs/api/LocationError.md) - Error types
 - [LocationUtils](docs/api/LocationUtils.md) - Polar coordinate conversion
+- [GpxUtils](docs/api/GpxUtils.md) - GPX file generation
 
 **Components**
 - [RadarView](docs/api/RadarView.md) - Canvas radar visualization
@@ -109,52 +112,13 @@ Radar/
 - [Build Instructions](docs/guides/build.md) - Building the app
 - [Testing Guide](docs/guides/testing.md) - Running tests
 
-## Setup
-
-For detailed setup instructions, see the [Setup Guide](docs/guides/setup.md).
-
-Quick start:
-1. Clone the repository
-2. Open in Android Studio (Chipmunk or later recommended)
-3. Sync Gradle dependencies
-4. Run on an emulator or physical device (API 35+ required)
-
 ## Permissions
 
 The app requests the following permissions at runtime:
-- `ACCESS_FINE_LOCATION`  
-- `ACCESS_COARSE_LOCATION`  
+- `ACCESS_FINE_LOCATION`
+- `ACCESS_COARSE_LOCATION`
 
-These are required for the location-based features of the application.  
-This app works entirely offline using only GPS - no internet or cellular connection required.  
-
-## Building
-
-For detailed build instructions, see the [Build Instructions](docs/guides/build.md).
-
-To build the debug variant:
-```bash
-./gradlew assembleDebug
-```
-
-To build the release variant:
-```bash
-./gradlew assembleRelease
-```
-
-## Testing
-
-For detailed testing instructions, see the [Testing Guide](docs/guides/testing.md).
-
-Run unit tests:
-```bash
-./gradlew test
-```
-
-Run instrumented tests:
-```bash
-./gradlew connectedAndroidTest
-```
+These are required for the location-based features of the application. This app works entirely offline using only GPS - no internet or cellular connection required.
 
 ## License
 

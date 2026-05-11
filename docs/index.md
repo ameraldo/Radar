@@ -1,6 +1,7 @@
 # Radar - GPS Route Tracking App
 
-Radar is an Android application for recording GPS points to create routes, saving them locally, and navigating back along those routes. Designed for outdoor use where traditional navigation (Google/Apple Maps) is unavailable due to poor cellular reception.
+Radar is an Android application for recording GPS points to create routes, saving them locally, and navigating back along those routes.
+Designed for outdoor use where traditional navigation (Google/Apple Maps) is unavailable due to poor cellular reception.
 
 ## Features
 
