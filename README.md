@@ -17,10 +17,10 @@ Designed for outdoor use where traditional navigation (Google/Apple Maps) is una
 ## Screenshots
 
 <div align="center">
-  <img src="assets/screenshots/home.jpeg" width="200" alt="Home Screen"/>
-  <img src="assets/screenshots/radar_record.jpeg" width="200" alt="Radar Recording"/>
-  <img src="assets/screenshots/radar_follow.jpeg" width="200" alt="Radar Following"/>
-  <img src="assets/screenshots/routes.jpeg" width="200" alt="Routes"/>
+  <img src="docs/assets/screenshots/home.jpeg" width="200" alt="Home Screen"/>
+  <img src="docs/assets/screenshots/radar_record.jpeg" width="200" alt="Radar Recording"/>
+  <img src="docs/assets/screenshots/radar_follow.jpeg" width="200" alt="Radar Following"/>
+  <img src="docs/assets/screenshots/routes.jpeg" width="200" alt="Routes"/>
 </div>
 
 ## Technical Details
