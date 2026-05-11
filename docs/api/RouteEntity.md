@@ -53,6 +53,7 @@ data class RecordedPointEntity(
     val routeId: Long?,
     val latitude: Double,
     val longitude: Double,
+    val elevation: Double?,
     val timestamp: Long,
     val sequenceNumber: Int
 )
@@ -64,6 +65,7 @@ data class RecordedPointEntity(
 | `routeId` | Long? | Foreign key to parent route |
 | `latitude` | Double | GPS latitude |
 | `longitude` | Double | GPS longitude |
+| `elevation` | `Double?` | Elevation in meters above sea level (null if unavailable) |
 | `timestamp` | Long | Unix timestamp of point |
 | `sequenceNumber` | Int | Order in the route |
 

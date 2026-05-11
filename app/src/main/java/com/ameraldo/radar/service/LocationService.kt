@@ -608,6 +608,7 @@ class LocationService : Service() {
                         routeId = _currentRouteId.value,
                         latitude = state.latitude,
                         longitude = state.longitude,
+                        elevation = null, // init as null
                         timestamp = System.currentTimeMillis(),
                         sequenceNumber = 0
                     )
@@ -750,6 +751,7 @@ class LocationService : Service() {
                 routeId = _currentRouteId.value,
                 latitude = location.latitude,
                 longitude = location.longitude,
+                elevation = if (location.hasAltitude()) location.altitude else null,
                 timestamp = System.currentTimeMillis(),
                 sequenceNumber = sequenceCounter
             )

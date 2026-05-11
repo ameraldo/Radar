@@ -15,7 +15,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [RouteEntity::class, RecordedPointEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false // Set to true and provide schema export directory for migrations
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -10,7 +10,7 @@ LocationService is the **single source of truth** for location and recording fun
 
 **Key Responsibilities**:
 - Manage GPS location updates via Google Play Services Location API
-- Handle route recording (capturing GPS points, 5m distance check)
+- Handle route recording (capturing GPS points with elevation, 5m distance check)
 - Handle route following (navigating back along saved routes, adaptive/strict mode, 5m proximity detection)
 - Run as Foreground Service with notification
 - Track GPS satellite information

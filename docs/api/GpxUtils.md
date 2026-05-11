@@ -47,9 +47,10 @@ Generates a complete GPX 1.1 document from a route and its recorded points.
   <trk>
     <name>Route Name</name>
     <trkseg>
-      <trkpt lat="37.7749" lon="-122.4194">
-        <time>2026-05-11T12:00:00Z</time>
-      </trkpt>
+        <trkpt lat="37.7749" lon="-122.4194">
+            <ele>15.0</ele>
+            <time>2026-05-11T12:00:00Z</time>
+        </trkpt>
     </trkseg>
   </trk>
 </gpx>
@@ -57,7 +58,7 @@ Generates a complete GPX 1.1 document from a route and its recorded points.
 
 **Notes**:
 - Timestamps are in ISO 8601 format (UTC)
-- Elevation (`<ele>`) is omitted as it is not stored
+- Elevation (`<ele>`) is included when GPS provides altitude data, omitted otherwise
 - Route names are XML-escaped to prevent invalid characters
 - Points are output in `sequenceNumber` order
 

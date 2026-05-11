@@ -12,7 +12,7 @@ import java.util.TimeZone
  *
  * Produces a valid GPX document with metadata (route name, start time),
  * a single track containing all points in sequence order.
- * Elevation data is not included as it is not stored.
+ * Elevation data is included when available.
  *
  * @param route The route entity containing name and start time
  * @param points List of recorded points in sequence order (by sequenceNumber)
@@ -34,6 +34,7 @@ fun generateGpx(route: RouteEntity, points: List<RecordedPointEntity>): String {
         for (point in points) {
             val pointTime = isoFormat.format(Date(point.timestamp))
             appendLine("      <trkpt lat=\"${point.latitude}\" lon=\"${point.longitude}\">")
+            point.elevation?.let { appendLine("        <ele>$it</ele>") }
             appendLine("        <time>$pointTime</time>")
             appendLine("      </trkpt>")
         }

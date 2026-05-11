@@ -30,6 +30,7 @@ data class RouteEntity(
  * @property routeId Foreign key to [RouteEntity] (CASCADE delete when route removed)
  * @property latitude Latitude in degrees
  * @property longitude Longitude in degrees
+ * @property elevation Elevation in meters above sea level, or null if unavailable
  * @property timestamp Timestamp (ms) when point was recorded
  * @property sequenceNumber Order in the route (0 = start, increments by 1)
  */
@@ -50,6 +51,7 @@ data class RecordedPointEntity(
     val routeId: Long?,
     val latitude: Double,
     val longitude: Double,
+    val elevation: Double? = null,
     val timestamp: Long,
     val sequenceNumber: Int
 )
