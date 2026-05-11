@@ -29,6 +29,12 @@ The Routes Screen shows all saved GPS routes, allowing users to view, follow, or
 - Tap route to select it for following
 - Navigates to Radar Screen in following mode
 
+### GPX Export
+- Download button on each route item
+- Uses Storage Access Framework — user chooses save location
+- Exports route as GPX 1.1 XML file
+- Filename derived from route name
+
 ## UI Components
 
 | Component | Description |
@@ -76,7 +82,8 @@ data class RouteEntity(
 
 1. **View routes**: Browse saved routes list
 2. **Follow route**: Tap route to start navigation
-3. **Delete route**: Tap delete icon in RoutesList
+3. **Export route**: Tap download icon to save as GPX file
+4. **Delete route**: Tap delete icon in RoutesList
 
 ## Storage
 
@@ -87,8 +94,9 @@ Routes stored in Room database:
 
 ## Related Documentation
 
-- [RouteViewModel](../api/RouteViewModel.md) - Route list management
+- [RouteViewModel](../api/RouteViewModel.md) - Route list management and GPX export
 - [RoutesList](../api/RoutesList.md) - Route list component
+- [GpxUtils](../api/GpxUtils.md) - GPX file generation
 - [ConfirmationDialog](../api/ConfirmationDialog.md) - Delete confirmation
 - [RouteDao](../api/RouteDao.md) - Database operations
 - [RouteEntity](../api/RouteEntity.md) - Data model

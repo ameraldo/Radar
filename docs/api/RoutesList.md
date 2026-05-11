@@ -27,6 +27,12 @@ RoutesList shows all saved routes in a LazyColumn with the ability to follow or 
 - Uses `ConfirmationDialog` for delete confirmation
 - Route ID passed to dialog via `rememberSavable`
 
+### GPX Export
+- Download button on each route item triggers Storage Access Framework file picker
+- User chooses save location for the `.gpx` file
+- Exported file follows GPX 1.1 format
+- Filename derived from route name (whitespace replaced with `_`)
+
 ## Parameters
 
 | Parameter | Type | Description |
@@ -47,11 +53,13 @@ Each `RoutesListItem` shows:
 - **Route name**: Bold title
 - **Date**: Formatted as "MMM dd, yyyy HH:mm"
 - **Point count**: "X points"
-- **Delete button**: Red trash icon
+- **Download button**: GPX export (download icon)
+- **Delete button**: Red trash icon (delete icon)
 
 ## Related Documentation
 
-- [RouteViewModel](../api/RouteViewModel.md) - Route list management
+- [RouteViewModel](../api/RouteViewModel.md) - Route list management and GPX export
 - [RouteEntity](../api/RouteEntity.md) - Data model
+- [GpxUtils](../api/GpxUtils.md) - GPX file generation
 - [Routes Screen](../screens/routes.md) - Parent screen
 - [ConfirmationDialog](ConfirmationDialog.md) - Delete confirmation

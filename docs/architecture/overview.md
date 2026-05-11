@@ -66,7 +66,7 @@ graph TB
 
 ### ViewModel Layer (`viewmodel/`)
 - **LocationViewModel**: Bridges LocationService and UI, manages location state
-- **RouteViewModel**: Manages saved routes list
+- **RouteViewModel**: Manages saved routes list and GPX export
 - **SensorViewModel**: Handles compass/heading via accelerometer and magnetometer
 - **SettingsViewModel**: Manages app settings preferences
 - **UIStateViewModel**: Manages UI state (navigation destination, PiP mode, pending stop actions)

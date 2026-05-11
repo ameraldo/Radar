@@ -7,6 +7,7 @@ Radar is an Android application for recording GPS points to create routes, savin
 - **Route Recording** - Capture GPS points as you move
 - **Route Saving** - Store routes locally for later use
 - **Route Following** - Navigate back along saved routes
+- **GPX Export** - Export routes as GPX 1.1 files
 - **Compass Heading** - Uses device accelerometer + magnetometer
 - **GPS Satellite Tracking** - See satellite visibility
 - **Picture-in-Picture Mode** - Keeps radar visible while multitasking
@@ -47,7 +48,7 @@ Radar/
 │   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
 │   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore
 │   │   │   │   ├── ui/              # Compose UI (screens, components, theme)
-│   │   │   │   └── utils/           # Utility functions (LocationUtils)
+│   │   │   │   └── utils/           # Utility functions (LocationUtils, GpxUtils)
 │   │   │   ├── res/                 # Android resources
 │   │   │   └── AndroidManifest.xml
 │   │   ├── test/                    # Unit tests
@@ -88,6 +89,7 @@ Radar/
 - [SatelliteBlip](api/SatelliteBlip.md) - Satellite data model
 - [LocationError](api/LocationError.md) - Error types
 - [LocationUtils](api/LocationUtils.md) - Polar coordinate conversion
+- [GpxUtils](api/GpxUtils.md) - GPX file generation
 
 **Components**
 - [RadarView](api/RadarView.md) - Canvas radar visualization
