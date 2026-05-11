@@ -1,6 +1,8 @@
 package com.ameraldo.radar.ui.screens.settings
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +17,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,6 +33,7 @@ import com.ameraldo.radar.viewmodel.SettingsViewModel
  * Allows users to configure:
  * - Distance units (Metric/Imperial)
  * - Maximum radar range
+ * - Adaptive following (skip missed waypoints when following a route)
  *
  * @param modifier Modifier for styling
  * @param settingsViewModel For reading/updating settings
@@ -43,6 +47,7 @@ fun SettingsScreen(
     val availableMaxRanges by settingsViewModel.availableMaxRanges.collectAsState()
     val maxRange by settingsViewModel.maxRange.collectAsState()
     val maxRangeIndex = availableMaxRanges.indexOf(maxRange).coerceAtLeast(0)
+    val adaptiveFollowing by settingsViewModel.adaptiveFollowing.collectAsState()
 
     Column(
         modifier = modifier
@@ -138,6 +143,44 @@ fun SettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Adaptive following
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        ) {
+            Column (
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Adaptive Following",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "When following a route, automatically skip missed waypoints if you've moved ahead and are back on track further along the route",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f) // takes up remaining space, pushing switch right
+                    )
+                    Switch(
+                        checked = adaptiveFollowing,
+                        onCheckedChange = { enabled ->
+                            settingsViewModel.updateAdaptiveFollowing(enabled)
+                        }
+                    )
+                }
             }
         }
     }

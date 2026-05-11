@@ -3,6 +3,7 @@ package com.ameraldo.radar.data
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -27,6 +28,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
  * - maxRange: 1000 (meters or feet)
  * - selectedRange: 500 (meters or feet)
  * - distanceUnits: METRIC
+ * - adaptiveFollowing: false (disabled)
  *
  * ## Usage
  * ```
@@ -45,6 +47,8 @@ class AppSettings(private val context: Context) {
         val SELECTED_RANGE_KEY = floatPreferencesKey("selected_range")
         /** DataStore key for distance units preference (metric/imperial) */
         val DISTANCE_UNITS_KEY = stringPreferencesKey("distance_units")
+        /** DataStore key for adaptive following preference (enables skipping ahead past missed waypoints) */
+        val ADAPTIVE_FOLLOWING_KEY = booleanPreferencesKey("adaptive_following")
 
         /** Default max range: 1000 meters or 1000 feet */
         const val DEFAULT_MAX_RANGE      = 1000
@@ -52,6 +56,8 @@ class AppSettings(private val context: Context) {
         const val DEFAULT_SELECTED_RANGE = 500f
         /** Default distance units: metric */
         const val DEFAULT_DISTANCE_UNITS = "metric"
+        /** Default adaptive following: disabled (strict single-point check) */
+        const val DEFAULT_ADAPTIVE_FOLLOWING = false
     }
 
     /** Flow of max radar range (in meters or feet depending on units) */
@@ -65,6 +71,10 @@ class AppSettings(private val context: Context) {
     /** Flow of distance units preference */
     val distanceUnits: Flow<DistanceUnits> = context.dataStore.data.map { prefs ->
         DistanceUnits.fromString(prefs[DISTANCE_UNITS_KEY] ?: DEFAULT_DISTANCE_UNITS)
+    }
+    /** Flow of adaptive following preference (scans all points vs single-point check) */
+    val adaptiveFollowing: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[ADAPTIVE_FOLLOWING_KEY] ?: DEFAULT_ADAPTIVE_FOLLOWING
     }
 
     /**
@@ -96,6 +106,16 @@ class AppSettings(private val context: Context) {
     suspend fun setDistanceUnits(distanceUnits: DistanceUnits) {
         context.dataStore.edit { prefs ->
             prefs[DISTANCE_UNITS_KEY] = distanceUnits.value
+        }
+    }
+    /**
+     * Updates the adaptive following preference.
+     *
+     * @param enabled True to enable adaptive following (skip ahead), false for strict single-point check
+     */
+    suspend fun setAdaptiveFollowing(enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[ADAPTIVE_FOLLOWING_KEY] = enabled
         }
     }
 }

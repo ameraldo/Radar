@@ -11,10 +11,11 @@ LocationService is the **single source of truth** for location and recording fun
 **Key Responsibilities**:
 - Manage GPS location updates via Google Play Services Location API
 - Handle route recording (capturing GPS points, 5m distance check)
-- Handle route following (navigating back along saved routes, 5m proximity detection)
+- Handle route following (navigating back along saved routes, adaptive/strict mode, 5m proximity detection)
 - Run as Foreground Service with notification
 - Track GPS satellite information
 - Persist state via ServiceState (DataStore) for restarts
+- Read adaptive following preference from AppSettings for following behavior
 
 ## Source Documentation
 
@@ -32,6 +33,7 @@ For detailed API documentation, see the KDoc comments in:
 | `currentRouteName` | `StateFlow<String?>` | Name of current route |
 | `currentRoutePoints` | `StateFlow<List<RecordedPointEntity>>` | Points for current route (Room-backed) |
 | `followingRemainingPoints` | `StateFlow<List<RecordedPointEntity>>` | Points yet to be reached (in-memory) |
+| `adaptiveFollowingEnabled` | `Boolean` | Internal flag for adaptive following mode (sourced from AppSettings) |
 
 ## Actions (Companion Object)
 

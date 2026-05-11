@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.Service.START_STICKY
 import android.content.Context
 import android.content.Intent
 import android.location.Location
@@ -28,6 +29,7 @@ import android.location.GnssStatus
 import android.os.Binder
 import android.util.Log
 import com.ameraldo.radar.MainActivity
+import com.ameraldo.radar.data.AppSettings
 import com.ameraldo.radar.data.RouteDao
 import com.ameraldo.radar.data.RouteEntity
 import com.google.android.gms.common.ConnectionResult
@@ -84,10 +86,12 @@ import kotlinx.coroutines.launch
  * - [currentRouteName]: Name of current route
  * - [currentRoutePoints]: Points for current route (Room-backed Flow)
  * - [followingRemainingPoints]: Points yet to be reached while following (in-memory)
+ * - [adaptiveFollowingEnabled]: Whether adaptive following is active (from AppSettings)
  */
 class LocationService : Service() {
     private lateinit var database: AppDatabase
     private lateinit var routeDao: RouteDao
+    private lateinit var appSettings: AppSettings
     private lateinit var serviceState: ServiceState
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
@@ -99,6 +103,13 @@ class LocationService : Service() {
     private val coroutineScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     /** Flag to track whether the service is bound to an activity */
     private var serviceBound = false
+    /**
+     * Whether adaptive following is enabled, sourced from [AppSettings] DataStore.
+     * Collected reactively in [onStartCommand] so changes apply immediately during following.
+     * - true: scan all remaining points, skip ahead to the furthest match
+     * - false: strict mode, only check the single next point
+     */
+    private var adaptiveFollowingEnabled = false
 
     // Core mutable state flows (initialized immediately; no lateinit needed)
     private val _locationState = MutableStateFlow(LocationState())
@@ -205,6 +216,7 @@ class LocationService : Service() {
 
         database = AppDatabase.getInstance(applicationContext)
         routeDao = database.routeDao()
+        appSettings = AppSettings(applicationContext)
         serviceState = ServiceState.getInstance(applicationContext)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
         locationManager = application.getSystemService(LOCATION_SERVICE) as LocationManager
@@ -220,6 +232,7 @@ class LocationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         coroutineScope.launch {
             restoreStateIfNeeded()
+            appSettings.adaptiveFollowing.collect { enabled -> adaptiveFollowingEnabled = enabled }
         }
 
         when (intent?.action) {
@@ -753,28 +766,40 @@ class LocationService : Service() {
     /**
      * Handles a location update during active following.
      *
-     * Checks if the next point to follow is within 5 meters of current location.
-     * If within range, removes the point from [_followingRemainingPoints].
-     * If no points remain, automatically stops following.
+     * Two modes of operation controlled by [adaptiveFollowingEnabled]:
+     * - **Adaptive mode** (enabled): Scans ALL remaining points and finds the furthest
+     *   point within 5m proximity. Skips ahead past all points up to that match.
+     * - **Strict mode** (disabled): Checks only the single next point (index 0).
+     *   If within 5m, removes it. Original sequential behavior.
+     *
+     * In both modes, if no points remain after removal, automatically stops following.
      *
      * @param location The new GPS location from FusedLocationProviderClient
      */
     private fun handleFollowingLocationUpdate(location: Location) {
-        val nextPoint = _followingRemainingPoints.value.firstOrNull()
-        if (nextPoint != null &&
-            calculatePointsDistance(
-                nextPoint.latitude, nextPoint.longitude,
-                location.latitude, location.longitude
-            ) <= 5.0
-        ) {
-            // Remove the point we've reached
-            val remaining = _followingRemainingPoints.value.drop(1)
-            _followingRemainingPoints.value = remaining
+        val remainingPoints = _followingRemainingPoints.value
+        if (remainingPoints.isEmpty()) {
+            stopFollowing(true)
+            return
+        }
 
-            // Check if following is complete
-            if (remaining.isEmpty()) {
-                stopFollowing(true)
+        val index = if (adaptiveFollowingEnabled) {
+            remainingPoints.indexOfFirst { nextPoint ->
+                calculatePointsDistance(
+                    nextPoint.latitude, nextPoint.longitude,
+                    location.latitude, location.longitude
+                ) <= 5.0
             }
+        } else {
+            val nextPoint = remainingPoints.first()
+            if (calculatePointsDistance(
+                    nextPoint.latitude, nextPoint.longitude,
+                    location.latitude, location.longitude
+                ) <= 5.0) 0 else -1
+        }
+
+        if (index >= 0) {
+            _followingRemainingPoints.value = remainingPoints.drop(index + 1)
         }
     }
     /**

@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel that manages app settings (distance units, radar range).
+ * ViewModel that manages app settings (distance units, radar range, adaptive following).
  *
  * Provides reactive state for user preferences stored in DataStore.
  *
@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
  * - [maxRange]: Maximum radar range in meters/feet
  * - [selectedRange]: Currently selected radar range for display
  * - [availableMaxRanges]: Available max range options based on units
+ * - [adaptiveFollowing]: Whether adaptive following is enabled
  *
  * ## Usage
  * ```
@@ -32,6 +33,7 @@ import kotlinx.coroutines.launch
  * // Change settings
  * settingsViewModel.updateDistanceUnits(DistanceUnits.IMPERIAL)
  * settingsViewModel.updateMaxRange(5280)
+ * settingsViewModel.updateAdaptiveFollowing(true)
  * ```
  */
 class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
@@ -70,6 +72,10 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
             DistanceUnits.IMPERIAL -> MAX_IMPERIAL_RANGES
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MAX_METRIC_RANGES)
+
+    /** Whether adaptive following is enabled (scans all remaining points vs single-point check) */
+    val adaptiveFollowing: StateFlow<Boolean> = appSettings.adaptiveFollowing
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings.DEFAULT_ADAPTIVE_FOLLOWING)
 
     /**
      * Updates the maximum radar range.
@@ -110,6 +116,19 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
             }
             appSettings.setMaxRange(defaultRange)
         }
+    }
+
+    /**
+     * Updates the adaptive following preference.
+     *
+     * When enabled, the following algorithm scans all remaining waypoints
+     * and skips ahead to the furthest point within proximity (5m).
+     * When disabled, only the single nearest waypoint is checked (strict mode).
+     *
+     * @param enabled True to enable adaptive following, false for strict mode
+     */
+    fun updateAdaptiveFollowing(enabled: Boolean) {
+        viewModelScope.launch { appSettings.setAdaptiveFollowing(enabled) }
     }
 
     /**

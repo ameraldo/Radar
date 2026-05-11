@@ -123,9 +123,14 @@ sequenceDiagram
     Radar->>VM: Observe currentRoutePoints
 
     loop Location Updates
-        Service->>Service: Check proximity to next point (5m)
-        alt Point Reached
-            Service->>Service: Remove from _followingRemainingPoints
+        alt Adaptive Following Enabled
+            Service->>Service: Scan ALL remaining points for proximity (5m)
+            Service->>Service: Skip ahead to furthest match
+        else Strict Following
+            Service->>Service: Check only the single next point (5m)
+        end
+        alt Point(s) Reached
+            Service->>Service: Remove reached points from _followingRemainingPoints
         end
         alt All Points Reached
             Service->>Service: stopFollowing()
