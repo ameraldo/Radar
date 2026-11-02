@@ -40,6 +40,7 @@ graph TB
     SettingsScreen --> SettingsVM
 
     LocationVM -->|observes| LocService
+    LocationVM -->|starts via intents| LocService
     LocService -->|writes| Room
     RouteVM -->|reads/writes| Room
     SettingsVM -->|reads/writes| DataStore
@@ -79,23 +80,32 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant User
-    participant UI as HomeScreen
+    participant UI as HomeScreen / RouteCard
+    participant App as RadarApp
     participant VM as LocationViewModel
-    participant Main as MainActivity
     participant Service as LocationService
     participant Room as Room Database
+    participant State as ServiceState (DataStore)
     participant Notif as Notification
 
     User->>UI: Tap "Start Recording"
-    UI->>VM: startRecording()
-    VM->>Main: startLocationService(ACTION_START_RECORDING)
-    Main->>Service: startForegroundService(intent)
-    Service->>Service: Generate route name
-    Service->>Room: Create RouteEntity
-    Service->>Room: Insert first point
+    alt From HomeScreen
+        UI->>App: onRecord()
+        App->>VM: startRecording()
+        App->>App: updateDestination(RADAR)
+    else From RouteCard
+        UI->>VM: startRecording()
+    end
+    VM->>Service: context.startForegroundService(ACTION_START_RECORDING)
+    Note over Service: onStartCommand dispatches to startRecording()
+    Service->>Service: Stop following if active
     Service->>Service: _isRecording = true
+    Service->>Notif: startForeground("Recording route")
+    Service->>Service: generateRouteNameAndSave() (async)
+    Service->>Room: insertRoute(RouteEntity)
+    Service->>State: setRecordingState(true, routeId, routeName)
+    Service->>Service: Insert first point if a fix is already available
     Service->>Service: startLocationUpdates()
-    Service->>Notif: Show "Recording route" notification
 ```
 
 ## Route Following Flow
@@ -104,36 +114,40 @@ sequenceDiagram
 sequenceDiagram
     participant User
     participant UI as RoutesScreen
+    participant App as RadarApp
     participant VM as LocationViewModel
-    participant Main as MainActivity
     participant Service as LocationService
     participant Room as Room Database
+    participant State as ServiceState (DataStore)
     participant Radar as RadarScreen
 
-    User->>UI: Select route to follow
-    UI->>VM: startFollowing(routeId)
-    VM->>Room: Load route points
-    VM->>Main: startLocationService(ACTION_START_FOLLOWING)
-    Main->>Service: startForegroundService(intent)
-    Service->>Room: Load route points
-    Service->>Service: _followingRemainingPoints = points
-    Service->>Service: _isFollowing = true
+    User->>UI: Tap route to follow
+    UI->>App: onFollowRoute(routeId)
+    App->>VM: startFollowing(routeId)
+    VM->>Service: context.startForegroundService(ACTION_START_FOLLOWING)
+    App->>App: updateDestination(RADAR)
+    Note over Service: onStartCommand dispatches to startFollowing()
+    Service->>Service: Stop recording if active
+    Service->>Service: _isFollowing = true, _currentRouteId = routeId
+    Service->>Service: startForeground("Following route")
+    Service->>Room: getPointsForRoute(routeId)
+    Service->>Service: _followingRemainingPoints = points.reversed()
     Service->>Service: startLocationUpdates()
-    UI->>Radar: Navigate to RadarScreen
-    Radar->>VM: Observe currentRoutePoints
+    Service->>State: setFollowingState(true, routeId)
+    Radar->>VM: Observe currentRoutePoints / followingRemainingPoints
 
-    loop Location Updates
-        alt Adaptive Following Enabled
-            Service->>Service: Scan ALL remaining points for proximity (5m)
-            Service->>Service: Skip ahead to furthest match
-        else Strict Following
-            Service->>Service: Check only the single next point (5m)
+    loop Each location update
+        alt Adaptive following enabled
+            Service->>Service: Find furthest remaining point within following distance
+        else Strict following
+            Service->>Service: Check only the next point within following distance
         end
-        alt Point(s) Reached
-            Service->>Service: Remove reached points from _followingRemainingPoints
+        alt Point(s) reached
+            Service->>Service: Drop reached point(s) from _followingRemainingPoints
         end
-        alt All Points Reached
-            Service->>Service: stopFollowing()
+        alt Remaining points now empty
+            Note over Service: On the next location update
+            Service->>Service: stopFollowing(true), clear state and stop service
         end
     end
 ```
@@ -160,6 +174,8 @@ sequenceDiagram
     participant Main as MainActivity
     participant UIStateVM as UIStateViewModel
     participant Nav as NavigationSuiteScaffold
+    participant Radar as RadarScreen / RouteCard
+    participant VM as LocationViewModel
 
     User->>Nav: Tap navigation item
     Nav->>UIStateVM: updateDestination(destination)
@@ -172,8 +188,18 @@ sequenceDiagram
 
     User->>Main: Tap notification stop action
     Main->>Main: handleNotificationIntent()
-    Main->>UIStateVM: setPendingStopAction(action)
-    UIStateVM->>Main: Process pending action
+    Main->>UIStateVM: setPendingStopAction(RECORDING or FOLLOWING)
+    Main->>UIStateVM: updateDestination(RADAR)
+    UIStateVM-->>Radar: pendingStopAction emitted
+    Radar->>User: Show stop confirmation dialog
+
+    User->>Radar: Confirm stop
+    alt Recording
+        Radar->>VM: stopRecording()
+    else Following
+        Radar->>VM: stopFollowing()
+    end
+    Radar->>UIStateVM: clearPendingStopAction()
 ```
 
 ## Satellite Data Flow

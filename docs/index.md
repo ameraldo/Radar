@@ -43,7 +43,7 @@ Radar/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com.ameraldo.radar/
+│   │   │   ├── java/com/ameraldo/radar/
 │   │   │   │   ├── MainActivity     # Main activity, service binding, PiP mode
 │   │   │   │   ├── service/         # LocationService (foreground service)
 │   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
@@ -116,9 +116,20 @@ Radar/
 
 ## Permissions
 
-The app requests the following permissions at runtime:
-- `ACCESS_FINE_LOCATION`
-- `ACCESS_COARSE_LOCATION`
+The app declares the following permissions in `AndroidManifest.xml`:
+
+**Runtime permissions (requested from the user):**
+- `ACCESS_FINE_LOCATION` - GPS location for recording and following
+- `ACCESS_COARSE_LOCATION` - Approximate location
+- `POST_NOTIFICATIONS` - Foreground-service notification
+
+**Normal permissions (granted at install):**
+- `FOREGROUND_SERVICE` - Declared for the location foreground service
+- `FOREGROUND_SERVICE_LOCATION` - Declares the foreground service type as location
+- `WAKE_LOCK` - Declared for wake-lock capability (no wake lock is currently acquired in code)
+
+**Special permission:**
+- `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` - Declared to allow requesting a battery-optimization exemption (not currently requested at runtime)
 
 These are required for the location-based features of the application. This app works entirely offline using only GPS - no internet or cellular connection required.
 

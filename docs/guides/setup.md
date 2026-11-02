@@ -68,7 +68,7 @@ Radar/
 ├── app/
 │   ├── src/
 │   │   ├── main/
-│   │   │   ├── java/com.ameraldo.radar/
+│   │   │   ├── java/com/ameraldo/radar/
 │   │   │   │   ├── service/      # LocationService
 │   │   │   │   ├── viewmodel/    # ViewModels
 │   │   │   │   ├── data/         # Database, DAOs

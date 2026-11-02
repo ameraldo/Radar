@@ -10,12 +10,12 @@ LocationService is the **single source of truth** for location and recording fun
 
 **Key Responsibilities**:
 - Manage GPS location updates via Google Play Services Location API
-- Handle route recording (capturing GPS points with elevation, 5m distance check)
-- Handle route following (navigating back along saved routes, adaptive/strict mode, 5m proximity detection)
+- Handle route recording (capturing GPS points with elevation, configurable distance check)
+- Handle route following (navigating back along saved routes, adaptive/strict mode, configurable proximity detection)
 - Run as Foreground Service with notification
 - Track GPS satellite information
 - Persist state via ServiceState (DataStore) for restarts
-- Read adaptive following preference from AppSettings for following behavior
+- Read distance, unit, and adaptive following preferences from AppSettings
 
 ## Source Documentation
 
@@ -34,6 +34,11 @@ For detailed API documentation, see the KDoc comments in:
 | `currentRoutePoints` | `StateFlow<List<RecordedPointEntity>>` | Points for current route (Room-backed) |
 | `followingRemainingPoints` | `StateFlow<List<RecordedPointEntity>>` | Points yet to be reached (in-memory) |
 | `adaptiveFollowingEnabled` | `Boolean` | Internal flag for adaptive following mode (sourced from AppSettings) |
+| `recordingDistanceMeters` | `Double` | Internal recording threshold in meters (sourced from AppSettings) |
+| `followingDistanceMeters` | `Double` | Internal following threshold in meters (sourced from AppSettings) |
+
+Distance settings are observed once in `onCreate()`. Metric values are used as
+meters; imperial values are converted from feet to meters.
 
 ## Actions (Companion Object)
 
@@ -53,7 +58,7 @@ For detailed API documentation, see the KDoc comments in:
 | `setPermissionError(error)` | Set permission error state |
 | `deleteCurrentRoute()` | Delete current route and clear state |
 
-## Usage from MainActivity
+## Usage from LocationViewModel
 
 ```kotlin
 // Start recording (empty name = auto-generated)
@@ -61,16 +66,16 @@ val intent = LocationService.createStartRecordingIntent(context, "")
 context.startForegroundService(intent)
 
 // Stop recording (via binder or intent fallback)
-locationService?.stopRecordingViaBinder()
-    ?: run { context.startService(stopIntent) }
+_locationService?.stopRecordingViaBinder()
+    ?: context.startService(LocationService.createStopRecordingIntent(context))
 
 // Start following
 val intent = LocationService.createStartFollowingIntent(context, routeId)
 context.startForegroundService(intent)
 
 // Stop following (via binder or intent fallback)
-locationService?.stopFollowingViaBinder()
-    ?: run { context.startService(stopIntent) }
+_locationService?.stopFollowingViaBinder()
+    ?: context.startService(LocationService.createStopFollowingIntent(context))
 ```
 
 ## Related Documentation

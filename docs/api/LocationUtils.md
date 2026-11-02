@@ -34,6 +34,16 @@ Converts two lat/lon coordinates into a polar point relative to current position
 
 **Returns**: `PolarPoint` with angle, radius fraction, and raw distance
 
+### DistanceUnits.toMeters()
+
+Converts a distance to meters based on the unit system. Metric values are
+returned unchanged; imperial values are converted from feet.
+
+**Parameters**:
+- `value`: Distance in meters (metric) or feet (imperial)
+
+**Returns**: Distance in meters
+
 ### calculatePointsDistance()
 
 Calculates great-circle distance using the Haversine formula.

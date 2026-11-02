@@ -1,6 +1,7 @@
 package com.ameraldo.radar.ui.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +37,8 @@ import com.ameraldo.radar.viewmodel.SettingsViewModel
  * Allows users to configure:
  * - Distance units (Metric/Imperial)
  * - Maximum radar range
+ * - Recording distance (minimum movement between recorded points)
+ * - Following distance (proximity required to reach a waypoint)
  * - Adaptive following (skip missed waypoints when following a route)
  *
  * @param modifier Modifier for styling
@@ -48,17 +54,28 @@ fun SettingsScreen(
     val maxRange by settingsViewModel.maxRange.collectAsState()
     val maxRangeIndex = availableMaxRanges.indexOf(maxRange).coerceAtLeast(0)
     val adaptiveFollowing by settingsViewModel.adaptiveFollowing.collectAsState()
+    val availableDistances by settingsViewModel.availableDistances.collectAsState()
+    val recordingDistance by settingsViewModel.recordingDistance.collectAsState()
+    val followingDistance by settingsViewModel.followingDistance.collectAsState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(
-            text = "Settings",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Box(Modifier.size(48.dp)) // invisible placeholder
+        }
+        Spacer(modifier = Modifier.height(16.dp))
         // Distance Units Setting
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -148,6 +165,30 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Recording Distance Setting
+        DistanceSettingCard(
+            title = "Recording Distance",
+            description = "Minimum movement before a new GPS point is recorded",
+            distance = recordingDistance,
+            options = availableDistances,
+            distanceUnits = distanceUnits,
+            onDistanceChange = { settingsViewModel.updateRecordingDistance(it) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Following Distance Setting
+        DistanceSettingCard(
+            title = "Following Distance",
+            description = "Proximity required to mark a followed waypoint as reached",
+            distance = followingDistance,
+            options = availableDistances,
+            distanceUnits = distanceUnits,
+            onDistanceChange = { settingsViewModel.updateFollowingDistance(it) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // Adaptive following
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -182,6 +223,69 @@ fun SettingsScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Card with a discrete slider for a distance setting.
+ *
+ * @param title Setting name
+ * @param description Short explanation of the setting
+ * @param distance Currently selected distance
+ * @param options Selectable distances for the current unit system
+ * @param distanceUnits Current unit system (used for the value label)
+ * @param onDistanceChange Callback when the user selects a new distance
+ */
+@Composable
+private fun DistanceSettingCard(
+    title: String,
+    description: String,
+    distance: Int,
+    options: List<Int>,
+    distanceUnits: DistanceUnits,
+    onDistanceChange: (Int) -> Unit
+) {
+    val index = options.indexOf(distance).coerceAtLeast(0)
+    val unitLabel = if (distanceUnits == DistanceUnits.METRIC) "m" else "ft"
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Slider(
+                value = index.toFloat(),
+                onValueChange = { value ->
+                    options.getOrNull(value.toInt())?.let(onDistanceChange)
+                },
+                valueRange = 0f..(options.size - 1).toFloat(),
+                steps = (options.size - 2).coerceAtLeast(0),
+                modifier = Modifier.fillMaxWidth(),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary
+                )
+            )
+            Text(
+                text = "$distance $unitLabel",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
         }
     }
 }

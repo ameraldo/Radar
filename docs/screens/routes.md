@@ -8,7 +8,7 @@ The Routes Screen shows all saved GPS routes, allowing users to view, follow, or
 
 ## Location
 
-**File**: `app/src/main/java/com.ameraldo.radar/ui/screens/routes/RoutesScreen.kt`
+**File**: `app/src/main/java/com/ameraldo/radar/ui/screens/routes/RoutesScreen.kt`
 
 ## Features
 

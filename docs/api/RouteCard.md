@@ -22,7 +22,7 @@ RouteCard shows the current route status and provides controls for starting/stop
 
 ### Idle Mode
 - Shows "Start Recording" button (primary color)
-- Begins recording and navigates to Radar screen
+- Starts recording; navigation to the Radar screen is handled by the Home screen action
 
 ## Parameters
 

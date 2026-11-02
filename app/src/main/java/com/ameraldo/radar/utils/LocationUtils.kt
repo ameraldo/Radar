@@ -23,6 +23,17 @@ data class PolarPoint(
 )
 
 /**
+ * Converts a distance value to meters based on the unit system.
+ *
+ * Metric values are already in meters; imperial values are in feet.
+ *
+ * @param value Distance in the receiver's units
+ * @return Distance in meters
+ */
+fun DistanceUnits.toMeters(value: Float): Float =
+    if (this == DistanceUnits.METRIC) value else value / 3.28084f
+
+/**
  * Converts a list of recorded GPS points to polar coordinates relative to current position.
  *
  * Maps each [RecordedPointEntity] to a [PolarPoint] using the current location as origin.
@@ -114,10 +125,7 @@ private fun toPolarPoint(
 
     // Convert radar range to meters for consistent calculation
     // (radarRange may be in feet for imperial units display)
-    val radarRangeMeters = (
-            if (radarDistanceUnits == DistanceUnits.METRIC) radarRange
-            else (radarRange / 3.28084).toFloat() // feet → meters conversion
-    )
+    val radarRangeMeters = radarDistanceUnits.toMeters(radarRange)
 
     // Convert all coordinates to radians for trigonometric functions
     val lat1 = Math.toRadians(currentLat)  // Current position latitude (radians)

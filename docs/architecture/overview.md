@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Radar follows the **MVVM (Model-View-ViewModel)** architecture pattern with **Clean Architecture** principles, using **manual dependency injection** via ViewModel factories.
+Radar follows the **MVVM (Model-View-ViewModel)** architecture pattern with **Clean Architecture** principles, using **manual dependency injection**.
 
 ## Overall Architecture
 
@@ -85,12 +85,13 @@ graph TB
 
 ## Dependency Injection
 
-The app uses **manual dependency injection** via ViewModel factories (`viewModels()`). Key components:
+The app uses **manual dependency injection**; no dependency-injection framework is active.
 
-- `AppDatabase.getInstance(context)` - Room database singleton
-- `RouteDao` - Injected via database instance
-- `AppSettings(context)` - DataStore preferences
-- `LocationService` - Bound via ServiceConnection in MainActivity
+- `LocationViewModel`, `SensorViewModel`, `UIStateViewModel`, and `RouteViewModel` are created by `MainActivity` with the `viewModels()` delegate and passed down to Compose.
+- `SettingsViewModel` has no factory. `RadarApp` creates `AppSettings(context)` and then `SettingsViewModel(appSettings)` with `remember { ... }`.
+- `AppDatabase.getInstance(context)` is a Room singleton reached directly from view models and `LocationService`; `RouteDao` is obtained from that instance.
+- `LocationService` is started with `startForegroundService(...)` intents and bound through a `ServiceConnection` in `MainActivity`.
+- Hilt is applied in `app/build.gradle.kts` (plugin and dependencies), but the app contains no Hilt annotations (`@HiltAndroidApp`, `@AndroidEntryPoint`, `@Inject`). It is currently unused build configuration.
 
 ## Key Design Decisions
 

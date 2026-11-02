@@ -8,7 +8,7 @@ The Home Screen is the main entry point of the Radar app. It displays a radar vi
 
 ## Location#
 
-**File**: `app/src/main/java/com.ameraldo.radar/ui/screens/home/HomeScreen.kt`
+**File**: `app/src/main/java/com/ameraldo/radar/ui/screens/home/HomeScreen.kt`
 
 ## Features#
 
@@ -72,6 +72,7 @@ The Home Screen is the main entry point of the Radar app. It displays a radar vi
 
 - `ACCESS_FINE_LOCATION`#
 - `ACCESS_COARSE_LOCATION`#
+- `POST_NOTIFICATIONS`#
 
 ## Related Documentation#
 

@@ -20,6 +20,7 @@ import com.ameraldo.radar.data.RecordedPointEntity
 import com.ameraldo.radar.data.SatelliteBlip
 import com.ameraldo.radar.data.ServiceState
 import com.ameraldo.radar.utils.calculatePointsDistance
+import com.ameraldo.radar.utils.toMeters
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -47,6 +48,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -105,11 +107,24 @@ class LocationService : Service() {
     private var serviceBound = false
     /**
      * Whether adaptive following is enabled, sourced from [AppSettings] DataStore.
-     * Collected reactively in [onStartCommand] so changes apply immediately during following.
+     * Collected reactively in [onCreate] so changes apply immediately during following.
      * - true: scan all remaining points, skip ahead to the furthest match
      * - false: strict mode, only check the single next point
      */
     private var adaptiveFollowingEnabled = false
+
+    /**
+     * Minimum movement in meters before a new point is recorded.
+     * Sourced from [AppSettings.recordingDistance] and converted from the current units.
+     */
+    @Volatile
+    private var recordingDistanceMeters = 5.0
+    /**
+     * Proximity in meters required to mark a followed waypoint as reached.
+     * Sourced from [AppSettings.followingDistance] and converted from the current units.
+     */
+    @Volatile
+    private var followingDistanceMeters = 5.0
 
     // Core mutable state flows (initialized immediately; no lateinit needed)
     private val _locationState = MutableStateFlow(LocationState())
@@ -222,6 +237,26 @@ class LocationService : Service() {
         locationManager = application.getSystemService(LOCATION_SERVICE) as LocationManager
 
         createNotificationChannel()
+
+        // Observe settings once per service instance. Collecting in onCreate avoids
+        // accumulating duplicate collectors each time onStartCommand is called.
+        coroutineScope.launch {
+            combine(
+                appSettings.distanceUnits,
+                appSettings.recordingDistance,
+                appSettings.followingDistance
+            ) { units, recording, following ->
+                Triple(units, recording, following)
+            }.collect { (units, recording, following) ->
+                recordingDistanceMeters =
+                    units.toMeters(recording.toFloat()).toDouble()
+                followingDistanceMeters =
+                    units.toMeters(following.toFloat()).toDouble()
+            }
+        }
+        coroutineScope.launch {
+            appSettings.adaptiveFollowing.collect { enabled -> adaptiveFollowingEnabled = enabled }
+        }
     }
     /**
      * Handles incoming intent actions.
@@ -232,7 +267,6 @@ class LocationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         coroutineScope.launch {
             restoreStateIfNeeded()
-            appSettings.adaptiveFollowing.collect { enabled -> adaptiveFollowingEnabled = enabled }
         }
 
         when (intent?.action) {
@@ -732,8 +766,8 @@ class LocationService : Service() {
     /**
      * Handles a location update during active recording.
      *
-     * Checks if the distance from the last recorded point is >= 5 meters.
-     * If true, creates a new [RecordedPointEntity] and inserts it into Room.
+     * Checks if the distance from the last recorded point is at least the configured
+     * recording distance. If true, creates a new [RecordedPointEntity] and inserts it into Room.
      * Updates the local tracking variables for fast synchronous distance checks.
      *
      * @param location The new GPS location from FusedLocationProviderClient
@@ -744,7 +778,7 @@ class LocationService : Service() {
                          else calculatePointsDistance(
                                 lastRecordedLat!!, lastRecordedLon!!,
                                 location.latitude, location.longitude
-                              ) >= 5.0
+                              ) >= recordingDistanceMeters
 
         if (distanceOk) {
             val point = RecordedPointEntity(
@@ -770,9 +804,9 @@ class LocationService : Service() {
      *
      * Two modes of operation controlled by [adaptiveFollowingEnabled]:
      * - **Adaptive mode** (enabled): Scans ALL remaining points and finds the furthest
-     *   point within 5m proximity. Skips ahead past all points up to that match.
+     *   point within the configured following distance. Skips ahead past all points up to that match.
      * - **Strict mode** (disabled): Checks only the single next point (index 0).
-     *   If within 5m, removes it. Original sequential behavior.
+     *   If within the configured following distance, removes it. Original sequential behavior.
      *
      * In both modes, if no points remain after removal, automatically stops following.
      *
@@ -790,14 +824,14 @@ class LocationService : Service() {
                 calculatePointsDistance(
                     nextPoint.latitude, nextPoint.longitude,
                     location.latitude, location.longitude
-                ) <= 5.0
+                ) <= followingDistanceMeters
             }
         } else {
             val nextPoint = remainingPoints.first()
             if (calculatePointsDistance(
                     nextPoint.latitude, nextPoint.longitude,
                     location.latitude, location.longitude
-                ) <= 5.0) 0 else -1
+                ) <= followingDistanceMeters) 0 else -1
         }
 
         if (index >= 0) {

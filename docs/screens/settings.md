@@ -1,10 +1,10 @@
 # Settings Screen
 
-> Configures app preferences (distance units, radar range)
+> Configures app preferences (distance units, radar range, distances)
 
 ## Overview
 
-The Settings Screen allows users to configure app preferences including distance units and maximum radar range.
+The Settings Screen allows users to configure app preferences including distance units, maximum radar range, recording/following distances, and adaptive following. The content scrolls vertically when it exceeds the screen height.
 
 ## Location
 
@@ -14,8 +14,8 @@ The Settings Screen allows users to configure app preferences including distance
 
 ### Adaptive Following
 - Toggle automatic skipping of missed waypoints during route following
-- When enabled: scans all remaining points, skips ahead to furthest match within 5m
-- When disabled: strict mode, only checks the single next point (original behavior)
+- When enabled: scans all remaining points, skips ahead to the furthest match within the configured following distance
+- When disabled: strict mode, only checks the single next point
 - Default: disabled
 
 ### Distance Units
@@ -31,34 +31,47 @@ The Settings Screen allows users to configure app preferences including distance
 
 | Value | Display |
 |-------|---------|
-| 100 m | 0.1 km |
-| 500 m | 0.5 km |
-| 1000 m | 1 km |
-| 1500 m | 1.5 km |
-| 2000 m | 2 km |
-| 5000 m | 5 km |
+| 100 m | 100m |
+| 500 m | 500m |
+| 1000 m | 1.0km |
+| 1500 m | 1.5km |
+| 2000 m | 2.0km |
+| 5000 m | 5.0km |
 
 **Imperial Options**:
 
 | Value | Display |
 |-------|---------|
-| 500 ft | 0.1 mi |
-| 2500 ft | 0.5 mi |
-| 5280 ft | 1 mi |
-| 7920 ft | 1.5 mi |
-| 10560 ft | 2 mi |
-| 26400 ft | 5 mi |
+| 500 ft | 500ft |
+| 2500 ft | 2500ft |
+| 5280 ft | 1.0mi |
+| 7920 ft | 1.5mi |
+| 10560 ft | 2.0mi |
+| 26400 ft | 5.0mi |
 
 Range selector updates:
 - Range slider to select max value
 - Selected value displayed in current units
+
+### Recording Distance
+- Minimum movement before a new GPS point is saved
+- Options are shared with Following Distance:
+
+| Unit system | Options | Default |
+|-------------|---------|---------|
+| Metric | 1, 5, 10, 25, 50, 100 m | 5 m |
+| Imperial | 3, 30, 80, 160, 320 ft | 30 ft |
+
+### Following Distance
+- Proximity required to mark a followed waypoint as reached
+- Uses the same options and default as Recording Distance
 
 ## UI Components
 
 | Component | Description |
 |-----------|-------------|
 | `SegmentedButton` | Distance unit selector |
-| `Slider` | Max range selector |
+| `Slider` | Max range, recording distance, and following distance selectors |
 | `Switch` | Adaptive following toggle |
 | `Card` | Settings sections |
 
@@ -68,14 +81,19 @@ Range selector updates:
 |-------|--------|-------|
 | `distanceUnits` | SettingsViewModel | Current unit system |
 | `maxRange` | SettingsViewModel | Current max range |
-| `availableMaxRanges` | SettingsViewModel | Available options |
+| `availableMaxRanges` | SettingsViewModel | Available range options |
+| `recordingDistance` | SettingsViewModel | Current recording distance |
+| `followingDistance` | SettingsViewModel | Current following distance |
+| `availableDistances` | SettingsViewModel | Available distance options for both sliders |
 | `adaptiveFollowing` | SettingsViewModel | Adaptive following toggle state |
 
 ## User Interactions
 
 1. **Change units**: Tap Metric or Imperial button
 2. **Change max range**: Drag slider to select value
-3. **Toggle adaptive following**: Flip the switch on the Adaptive Following card
+3. **Change recording distance**: Drag the Recording Distance slider
+4. **Change following distance**: Drag the Following Distance slider
+5. **Toggle adaptive following**: Flip the switch on the Adaptive Following card
 
 ## Settings Persistence
 
@@ -83,14 +101,18 @@ Settings stored in Android DataStore:
 - Key: `distance_units` - "metric" or "imperial"
 - Key: `max_range` - Integer value
 - Key: `selected_range` - Float value (last used range)
+- Key: `recording_distance` - Integer value in current units
+- Key: `following_distance` - Integer value in current units
 - Key: `adaptive_following` - Boolean value
 
 ## Effects of Changing Units
 
-When changing distance units:
-1. Max range resets to default (1000m / 5280ft)
-2. Selected range resets to 50% of max
-3. All display values update to new units
+When changing distance units, all unit-dependent settings are written atomically:
+1. Max range resets to default (1000 m / 5280 ft)
+2. Selected range resets to 50% of max (500 m / 2640 ft)
+3. Recording distance resets to default (5 m / 30 ft)
+4. Following distance resets to default (5 m / 30 ft)
+5. All display values update to new units
 
 ## Related Documentation
 

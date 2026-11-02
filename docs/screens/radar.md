@@ -8,7 +8,7 @@ The Radar Screen shows the radar visualization with recorded route points or rou
 
 ## Location
 
-**File**: `app/src/main/java/com.ameraldo.radar/ui/screens/radar/RadarScreen.kt`
+**File**: `app/src/main/java/com/ameraldo/radar/ui/screens/radar/RadarScreen.kt`
 
 ## Features
 
@@ -41,7 +41,7 @@ The Radar Screen shows the radar visualization with recorded route points or rou
 ## Recording Mode
 
 When recording a route:
-- Points captured automatically (every 5+ meters)
+- Points captured automatically at the configured recording distance
 - Route points displayed in real-time
 - FAB shows stop option
 - Card shows recording duration/points
@@ -51,7 +51,7 @@ When recording a route:
 When navigating back along a route:
 - Route points shown from current location reversed
 - Next point highlighted
-- Points removed as you reach them
+- Points removed when within the configured following distance
 - "Following complete" when all points reached
 
 ## UI Components
