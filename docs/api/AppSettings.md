@@ -26,7 +26,7 @@ For detailed API documentation, see the KDoc comments in:
 | Property | Type | Description |
 |----------|------|-------------|
 | `maxRange` | `Flow<Int>` | Maximum radar range |
-| `selectedRange` | `Flow<Float>` | Selected radar range for display |
+| `selectedRangeIndex` | `Flow<Int>` | Selected radar range position (0 = 25%, 3 = 100%) |
 | `distanceUnits` | `Flow<DistanceUnits>` | Distance units (METRIC/IMPERIAL) |
 | `adaptiveFollowing` | `Flow<Boolean>` | Adaptive following (skip missed waypoints when following) |
 | `recordingDistance` | `Flow<Int>` | Minimum movement before recording a new point |
@@ -41,9 +41,9 @@ normalized to that unit's default.
 | Method | Description |
 |--------|-------------|
 | `setMaxRange(range: Int)` | Update maximum range |
-| `setSelectedRange(range: Float)` | Update selected range |
-| `setDistanceUnits(units: DistanceUnits)` | Update distance units only |
-| `updateUnitSettings(...)` | Atomically update units, ranges, and distances |
+| `setSelectedRangeIndex(index: Int)` | Update selected range position (clamped to 0–3) |
+| `setDistanceUnits(distanceUnits: DistanceUnits)` | Update distance units only |
+| `updateUnitSettings(distanceUnits: DistanceUnits, maxRange: Int, selectedRangeIndex: Int, recordingDistance: Int, followingDistance: Int)` | Atomically update units, ranges, and distances |
 | `setAdaptiveFollowing(enabled: Boolean)` | Update adaptive following preference |
 | `setRecordingDistance(distance: Int)` | Update recording distance |
 | `setFollowingDistance(distance: Int)` | Update following distance |
@@ -55,20 +55,35 @@ Recording and following share the same selectable values:
 | Unit system | Options | Default |
 |-------------|---------|---------|
 | Metric | 1, 5, 10, 25, 50, 100 m | 5 m |
-| Imperial | 3, 30, 80, 160, 320 ft | 30 ft |
+| Imperial | 3, 15, 30, 80, 160, 320 ft | 15 ft |
 
 ## Default Values
 
 | Setting | Default |
 |---------|---------|
 | `maxRange` | 1000 m (metric) / 5280 ft (imperial) |
-| `selectedRange` | 500 m (metric) / 2640 ft (imperial) |
+| `selectedRangeIndex` | 1 (50% → 500 m metric / 2640 ft imperial) |
 | `distanceUnits` | METRIC |
 | `adaptiveFollowing` | false (disabled) |
-| `recordingDistance` | 5 m (metric) / 30 ft (imperial) |
-| `followingDistance` | 5 m (metric) / 30 ft (imperial) |
+| `recordingDistance` | 5 m (metric) / 15 ft (imperial) |
+| `followingDistance` | 5 m (metric) / 15 ft (imperial) |
+
+## DataStore Keys
+
+Settings are stored in the `settings` DataStore.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `max_range` | Int | Maximum radar range |
+| `selected_range_index` | Int | Selected range position (0–3) |
+| `distance_units` | String | `"metric"` or `"imperial"` |
+| `adaptive_following` | Boolean | Adaptive following enabled |
+| `recording_distance` | Int | Recording distance in current units |
+| `following_distance` | Int | Following distance in current units |
+| `selected_range` | Float | Legacy absolute range; removed on the next write of `selected_range_index` or `updateUnitSettings` |
 
 ## Related Documentation
 
+- [DistanceUnits](DistanceUnits.md) - Unit systems, option lists, and defaults
 - [RouteDao](RouteDao.md) - Route persistence
 - [Settings Screen](../screens/settings.md)

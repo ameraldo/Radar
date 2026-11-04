@@ -93,7 +93,7 @@ When navigating back along a route:
 - **Imperial**: feet (ft), miles (mi)
 
 ### Range Display
-- Max range: 100m to 5km (metric) / 500ft to 5mi (imperial)
+- Max range: 100m to 5km (metric) / 1320ft to 26400ft, displayed as 1/4mi to 5.0mi (imperial)
 - Range options: 25%, 50%, 75%, 100% of max
 
 ## Related Documentation

@@ -42,8 +42,8 @@ The Settings Screen allows users to configure app preferences including distance
 
 | Value | Display |
 |-------|---------|
-| 500 ft | 500ft |
-| 2500 ft | 2500ft |
+| 1320 ft | 1/4mi |
+| 2640 ft | 1/2mi |
 | 5280 ft | 1.0mi |
 | 7920 ft | 1.5mi |
 | 10560 ft | 2.0mi |
@@ -60,7 +60,7 @@ Range selector updates:
 | Unit system | Options | Default |
 |-------------|---------|---------|
 | Metric | 1, 5, 10, 25, 50, 100 m | 5 m |
-| Imperial | 3, 30, 80, 160, 320 ft | 30 ft |
+| Imperial | 3, 15, 30, 80, 160, 320 ft | 15 ft |
 
 ### Following Distance
 - Proximity required to mark a followed waypoint as reached
@@ -100,7 +100,7 @@ Range selector updates:
 Settings stored in Android DataStore:
 - Key: `distance_units` - "metric" or "imperial"
 - Key: `max_range` - Integer value
-- Key: `selected_range` - Float value (last used range)
+- Key: `selected_range_index` - Integer position (0 = 25%, 3 = 100%); the legacy `selected_range` Float key is removed on the next write
 - Key: `recording_distance` - Integer value in current units
 - Key: `following_distance` - Integer value in current units
 - Key: `adaptive_following` - Boolean value
@@ -110,12 +110,12 @@ Settings stored in Android DataStore:
 When changing distance units, all unit-dependent settings are written atomically:
 1. Max range resets to default (1000 m / 5280 ft)
 2. Selected range resets to 50% of max (500 m / 2640 ft)
-3. Recording distance resets to default (5 m / 30 ft)
-4. Following distance resets to default (5 m / 30 ft)
+3. Recording distance resets to default (5 m / 15 ft)
+4. Following distance resets to default (5 m / 15 ft)
 5. All display values update to new units
 
 ## Related Documentation
 
 - [SettingsViewModel](../api/SettingsViewModel.md) - Settings management
 - [AppSettings](../api/AppSettings.md) - DataStore preferences
-- [AppSettings](../api/AppSettings.md) - Unit definitions
+- [DistanceUnits](../api/DistanceUnits.md) - Unit definitions and option lists

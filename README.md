@@ -45,11 +45,12 @@ Radar/
 │   │   ├── main/
 │   │   │   ├── java/com/ameraldo/radar/
 │   │   │   │   ├── MainActivity     # Main activity, service binding, PiP mode
+│   │   │   │   ├── navigation/      # AppDestinations (top-level tabs)
 │   │   │   │   ├── service/         # LocationService (foreground service)
 │   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
 │   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore
-│   │   │   │   ├── ui/              # Compose UI (screens, components, theme)
-│   │   │   │   └── utils/           # Utility functions (LocationUtils, GpxUtils)
+│   │   │   │   ├── ui/              # Compose UI (RadarApp, screens, components, theme)
+│   │   │   │   └── utils/           # Utilities (LocationUtils, GpxUtils, DistanceFormatter)
 │   │   │   ├── res/                 # Android resources
 │   │   │   └── AndroidManifest.xml
 │   │   ├── test/                    # Unit tests
@@ -82,6 +83,7 @@ Radar/
 - [UIStateViewModel](docs/api/UIStateViewModel.md) - UI state (navigation, PiP)
 
 **Data Layer**
+- [AppDatabase](docs/api/AppDatabase.md) - Room database singleton
 - [RouteDao](docs/api/RouteDao.md) - Database DAO
 - [AppSettings](docs/api/AppSettings.md) - DataStore preferences
 - [ServiceState](docs/api/ServiceState.md) - Service state persistence
@@ -89,6 +91,8 @@ Radar/
 - [LocationState](docs/api/LocationState.md) - Location data model
 - [SatelliteBlip](docs/api/SatelliteBlip.md) - Satellite data model
 - [LocationError](docs/api/LocationError.md) - Error types
+- [DistanceUnits](docs/api/DistanceUnits.md) - Unit systems and setting defaults
+- [DistanceFormatter](docs/api/DistanceFormatter.md) - Distance label formatting
 - [LocationUtils](docs/api/LocationUtils.md) - Polar coordinate conversion
 - [GpxUtils](docs/api/GpxUtils.md) - GPX file generation
 
@@ -100,6 +104,10 @@ Radar/
 - [SatellitesList](docs/api/SatellitesList.md) - Satellite details
 - [RoutesList](docs/api/RoutesList.md) - Route list
 - [ConfirmationDialog](docs/api/ConfirmationDialog.md) - Reusable dialog
+
+**Navigation & App UI**
+- [AppDestinations](docs/navigation/AppDestinations.md) - Top-level navigation destinations
+- [RadarApp](docs/ui/RadarApp.md) - Root composable, permissions, PiP, screen wiring
 
 ### Screens
 - [Home Screen](docs/screens/home.md) - Recording controls, satellite info

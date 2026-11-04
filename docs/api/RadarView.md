@@ -71,6 +71,6 @@ Points are converted to polar coordinates via `toPolarPoints()`:
 
 ## Related Documentation
 
-- [LocationUtils](../utils/LocationUtils.md) - Polar coordinate conversion
+- [LocationUtils](LocationUtils.md) - Polar coordinate conversion
 - [SensorViewModel](../api/SensorViewModel.md) - Compass heading
 - [SatelliteBlip](../api/SatelliteBlip.md) - Satellite data model

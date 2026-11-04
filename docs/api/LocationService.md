@@ -42,12 +42,28 @@ meters; imperial values are converted from feet to meters.
 
 ## Actions (Companion Object)
 
-| Action | Description |
+| Action | Value | Description |
+|--------|-------|-------------|
+| `ACTION_START_LOCATION_UPDATES` | `action_start_location_updates` | Start GPS updates |
+| `ACTION_STOP_LOCATION_UPDATES` | `action_stop_location_updates` | Stop GPS updates |
+| `ACTION_START_RECORDING` | `action_start_recording` | Start recording a new route |
+| `ACTION_STOP_RECORDING` | `action_stop_recording` | Stop recording the current route |
+| `ACTION_START_FOLLOWING` | `action_start_following` | Start following a saved route |
+| `ACTION_STOP_FOLLOWING` | `action_stop_following` | Stop following the current route |
+
+Intent extras: `EXTRA_ROUTE_NAME` (`extra_route_name`) for recording and
+`EXTRA_ROUTE_ID` (`extra_route_id`) for following.
+
+## Intent Factory Methods
+
+| Method | Description |
 |--------|-------------|
-| `ACTION_START_RECORDING` | Start recording a new route |
-| `ACTION_STOP_RECORDING` | Stop recording the current route |
-| `ACTION_START_FOLLOWING` | Start following a saved route |
-| `ACTION_STOP_FOLLOWING` | Stop following the current route |
+| `requestStartLocationUpdates(context: Context): Intent` | Build a start-updates intent (sent with `startService`) |
+| `requestStopLocationUpdates(context: Context): Intent` | Build a stop-updates intent |
+| `createStartRecordingIntent(context: Context, routeName: String): Intent` | Build a start-recording intent with `EXTRA_ROUTE_NAME` |
+| `createStopRecordingIntent(context: Context): Intent` | Build a stop-recording intent |
+| `createStartFollowingIntent(context: Context, routeId: Long): Intent` | Build a start-following intent with `EXTRA_ROUTE_ID` |
+| `createStopFollowingIntent(context: Context): Intent` | Build a stop-following intent |
 
 ## Public Methods (via Binder)
 

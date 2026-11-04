@@ -45,11 +45,12 @@ Radar/
 │   │   ├── main/
 │   │   │   ├── java/com/ameraldo/radar/
 │   │   │   │   ├── MainActivity     # Main activity, service binding, PiP mode
+│   │   │   │   ├── navigation/      # AppDestinations (top-level tabs)
 │   │   │   │   ├── service/         # LocationService (foreground service)
 │   │   │   │   ├── viewmodel/       # ViewModels (Location, Route, Sensor, Settings, UIState)
 │   │   │   │   ├── data/            # Room database, DAOs, entities, DataStore
-│   │   │   │   ├── ui/              # Compose UI (screens, components, theme)
-│   │   │   │   └── utils/           # Utility functions (LocationUtils, GpxUtils)
+│   │   │   │   ├── ui/              # Compose UI (RadarApp, screens, components, theme)
+│   │   │   │   └── utils/           # Utilities (LocationUtils, GpxUtils, DistanceFormatter)
 │   │   │   ├── res/                 # Android resources
 │   │   │   └── AndroidManifest.xml
 │   │   ├── test/                    # Unit tests
@@ -82,6 +83,7 @@ Radar/
 - [UIStateViewModel](api/UIStateViewModel.md) - UI state (navigation, PiP)
 
 **Data Layer**
+- [AppDatabase](api/AppDatabase.md) - Room database singleton
 - [RouteDao](api/RouteDao.md) - Database DAO
 - [AppSettings](api/AppSettings.md) - DataStore preferences
 - [ServiceState](api/ServiceState.md) - Service state persistence
@@ -89,6 +91,8 @@ Radar/
 - [LocationState](api/LocationState.md) - Location data model
 - [SatelliteBlip](api/SatelliteBlip.md) - Satellite data model
 - [LocationError](api/LocationError.md) - Error types
+- [DistanceUnits](api/DistanceUnits.md) - Unit systems and setting defaults
+- [DistanceFormatter](api/DistanceFormatter.md) - Distance label formatting
 - [LocationUtils](api/LocationUtils.md) - Polar coordinate conversion
 - [GpxUtils](api/GpxUtils.md) - GPX file generation
 
@@ -100,6 +104,10 @@ Radar/
 - [SatellitesList](api/SatellitesList.md) - Satellite details
 - [RoutesList](api/RoutesList.md) - Route list
 - [ConfirmationDialog](api/ConfirmationDialog.md) - Reusable dialog
+
+**Navigation & App UI**
+- [AppDestinations](navigation/AppDestinations.md) - Top-level navigation destinations
+- [RadarApp](ui/RadarApp.md) - Root composable, permissions, PiP, screen wiring
 
 ### Screens
 
