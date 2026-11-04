@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ameraldo.radar.data.DistanceUnits
+import com.ameraldo.radar.utils.formatDistance
 import com.ameraldo.radar.viewmodel.SettingsViewModel
 
 /**
@@ -145,18 +146,7 @@ fun SettingsScreen(
                 )
                 // Display current value label
                 Text(
-                    text = when (distanceUnits) {
-                        DistanceUnits.METRIC -> {
-                            val range = maxRange
-                            if (range >= 1000) "${"%.1f".format(range / 1000.0)}km"
-                            else "${range}m"
-                        }
-                        DistanceUnits.IMPERIAL -> {
-                            val range = maxRange
-                            if (range >= 5280) "${"%.1f".format(range / 5280.0)}mi"
-                            else "${range}ft"
-                        }
-                    },
+                    text = distanceUnits.formatDistance(maxRange.toFloat()),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
@@ -247,7 +237,6 @@ private fun DistanceSettingCard(
     onDistanceChange: (Int) -> Unit
 ) {
     val index = options.indexOf(distance).coerceAtLeast(0)
-    val unitLabel = if (distanceUnits == DistanceUnits.METRIC) "m" else "ft"
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -282,7 +271,7 @@ private fun DistanceSettingCard(
                 )
             )
             Text(
-                text = "$distance $unitLabel",
+                text = distanceUnits.formatDistance(distance.toFloat()),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )

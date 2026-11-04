@@ -10,25 +10,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ameraldo.radar.data.DistanceUnits
-
+import com.ameraldo.radar.utils.formatDistance
 /**
  * Segmented button row for selecting radar range.
  *
  * Displays available range options (e.g., 250m, 500m, 750m, 1000m for metric).
  * The selected range controls the scale of the radar display.
  *
- * @param selectedRange Currently selected range value
+ * @param selectedIndex Currently selected range position (0 = 25%, 3 = 100%)
  * @param rangeList List of available range options
  * @param distanceUnits Current distance units (affects label formatting)
- * @param onRangeChange Callback when user selects a new range
+ * @param onRangeChange Callback when user selects a new range position
  * @param modifier Modifier for styling
  */
 @Composable
 fun RangeSelector(
-    selectedRange: Float,
+    selectedIndex: Int,
     rangeList: List<Float>,
     distanceUnits: DistanceUnits,
-    onRangeChange: (Float) -> Unit,
+    onRangeChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -39,22 +39,11 @@ fun RangeSelector(
     ) {
         rangeList.forEachIndexed { index, range ->
             SegmentedButton(
-                selected = selectedRange == range,
-                onClick = { onRangeChange(range) },
+                selected = selectedIndex == index,
+                onClick = { onRangeChange(index) },
                 shape = SegmentedButtonDefaults.itemShape(index, rangeList.size)
             ) {
-                Text(
-                    if (distanceUnits == DistanceUnits.METRIC)
-                        if (range >= 1000f)
-                            "${"%.1f".format(range / 1000f)}km"
-                        else
-                            "${"%.1f".format(range)}m"
-                    else
-                        if (range >= 5280f)
-                            "${"%.1f".format(range / 5280f)}mi"
-                        else
-                            "${"%.1f".format(range)}ft"
-                )
+                Text(distanceUnits.formatDistance(range))
             }
         }
     }

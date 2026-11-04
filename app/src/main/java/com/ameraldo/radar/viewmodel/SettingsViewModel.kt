@@ -3,12 +3,8 @@ package com.ameraldo.radar.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ameraldo.radar.data.AppSettings
-import com.ameraldo.radar.data.AppSettings.Companion.DEFAULT_DISTANCE_UNITS
-import com.ameraldo.radar.data.AppSettings.Companion.DEFAULT_IMPERIAL_MAX_RANGE
-import com.ameraldo.radar.data.AppSettings.Companion.DEFAULT_MAX_RANGE
-import com.ameraldo.radar.data.AppSettings.Companion.DEFAULT_METRIC_MAX_RANGE
-import com.ameraldo.radar.data.AppSettings.Companion.DEFAULT_SELECTED_RANGE
 import com.ameraldo.radar.data.DistanceUnits
+import com.ameraldo.radar.data.rangeSteps
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -19,12 +15,16 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel that manages app settings (distance units, radar range, adaptive following).
  *
- * Provides reactive state for user preferences stored in DataStore.
+ * Provides reactive state for user preferences stored in DataStore. All unit-dependent
+ * option lists and defaults come from [DistanceUnits]; this class only exposes state
+ * and orchestrates updates.
  *
  * ## State Properties
  * - [distanceUnits]: Current distance units (METRIC or IMPERIAL)
  * - [maxRange]: Maximum radar range in meters/feet
+ * - [selectedRangeIndex]: Selected radar range position (0 = 25%, 3 = 100%)
  * - [selectedRange]: Currently selected radar range for display
+ * - [radarRangeList]: Available radar range values derived from [maxRange]
  * - [availableMaxRanges]: Available max range options based on units
  * - [recordingDistance]: Minimum movement before a GPS point is recorded
  * - [followingDistance]: Proximity required to mark a followed waypoint as reached
@@ -43,52 +43,54 @@ import kotlinx.coroutines.launch
  * ```
  */
 class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
-    companion object {
-        /** Available max ranges in meters (metric) */
-        private val MAX_METRIC_RANGES = listOf(100, 500, 1000, 1500, 2000, 5000)
-        /** Available max ranges in feet (imperial) */
-        private val MAX_IMPERIAL_RANGES = listOf(500, 2500, 5280, 7920, 10560, 26400)
-    }
 
     /** Current distance units (METRIC or IMPERIAL) */
     val distanceUnits: StateFlow<DistanceUnits> = appSettings.distanceUnits
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DistanceUnits.fromString(DEFAULT_DISTANCE_UNITS))
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            DistanceUnits.METRIC
+        )
 
     /** Maximum radar range in current units */
     val maxRange: StateFlow<Int> = appSettings.maxRange
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_MAX_RANGE)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            DistanceUnits.METRIC.defaultMaxRange
+        )
 
-    /** Currently selected radar range for display */
-    val selectedRange: StateFlow<Float> = appSettings.selectedRange
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DEFAULT_SELECTED_RANGE)
+    /** Selected radar range position (0 = 25%, 3 = 100%) */
+    val selectedRangeIndex: StateFlow<Int> = appSettings.selectedRangeIndex
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            DistanceUnits.DEFAULT_SELECTED_RANGE_INDEX
+        )
 
     /** Available max range options based on current units */
-    val availableMaxRanges: StateFlow<List<Int>> = combine(
-        appSettings.distanceUnits,
-        appSettings.maxRange
-    ) { units, currentMaxRange ->
-        val ranges = when (units) {
-            DistanceUnits.METRIC -> MAX_METRIC_RANGES
-            DistanceUnits.IMPERIAL -> MAX_IMPERIAL_RANGES
-        }
-        // Ensure saved range is in the list, otherwise use default
-        if (currentMaxRange in ranges) ranges
-        else when (units) {
-            DistanceUnits.METRIC -> MAX_METRIC_RANGES
-            DistanceUnits.IMPERIAL -> MAX_IMPERIAL_RANGES
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MAX_METRIC_RANGES)
+    val availableMaxRanges: StateFlow<List<Int>> = appSettings.distanceUnits
+        .map { it.maxRangeOptions }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            DistanceUnits.METRIC.maxRangeOptions
+        )
 
     /** Whether adaptive following is enabled (scans all remaining points vs single-point check) */
     val adaptiveFollowing: StateFlow<Boolean> = appSettings.adaptiveFollowing
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings.DEFAULT_ADAPTIVE_FOLLOWING)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            AppSettings.DEFAULT_ADAPTIVE_FOLLOWING
+        )
 
     /** Minimum movement (in current units) before a new GPS point is recorded */
     val recordingDistance: StateFlow<Int> = appSettings.recordingDistance
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
-            DistanceUnits.METRIC.defaultDistance()
+            DistanceUnits.METRIC.defaultDistance
         )
 
     /** Proximity (in current units) required to mark a followed waypoint as reached */
@@ -96,41 +98,61 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
-            DistanceUnits.METRIC.defaultDistance()
+            DistanceUnits.METRIC.defaultDistance
         )
 
     /** Available recording/following distance options based on current units */
     val availableDistances: StateFlow<List<Int>> = appSettings.distanceUnits
-        .map { it.distanceOptions() }
+        .map { it.distanceOptions }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
-            DistanceUnits.METRIC.distanceOptions()
+            DistanceUnits.METRIC.distanceOptions
         )
+
+    /** The four radar range options derived from [maxRange] */
+    val radarRangeList: StateFlow<List<Float>> = appSettings.maxRange
+        .map(::rangeSteps)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            rangeSteps(DistanceUnits.METRIC.defaultMaxRange)
+        )
+
+    /** Currently selected radar range for display */
+    val selectedRange: StateFlow<Float> = combine(
+        appSettings.maxRange,
+        appSettings.selectedRangeIndex
+    ) { maxRange, index ->
+        val steps = rangeSteps(maxRange)
+        steps[index.coerceIn(steps.indices)]
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        rangeSteps(DistanceUnits.METRIC.defaultMaxRange)[
+            DistanceUnits.DEFAULT_SELECTED_RANGE_INDEX
+        ]
+    )
 
     /**
      * Updates the maximum radar range.
      *
-     * Also resets selected range to 50% of the new max range.
+     * The selected range is stored as a position, so 25/50/75/100% is preserved
+     * when the maximum range changes.
      *
      * @param range New max range value in meters or feet
      */
     fun updateMaxRange(range: Int) {
-        viewModelScope.launch {
-            appSettings.setMaxRange(range)
-            // Reset selected range to second step of new range list
-            val defaultRange = range / 4f * 2
-            appSettings.setSelectedRange(defaultRange)
-        }
+        viewModelScope.launch { appSettings.setMaxRange(range) }
     }
 
     /**
-     * Updates the selected radar range for display.
+     * Updates the selected radar range position.
      *
-     * @param range New selected range value
+     * @param index Position in the range list (0 = 25%, 3 = 100%)
      */
-    fun updateSelectedRange(range: Float) {
-        viewModelScope.launch { appSettings.setSelectedRange(range) }
+    fun updateSelectedRangeIndex(index: Int) {
+        viewModelScope.launch { appSettings.setSelectedRangeIndex(index) }
     }
 
     /**
@@ -154,24 +176,21 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
     /**
      * Changes the distance units and resets all unit-dependent settings atomically.
      *
-     * Resets max range, selected range, recording distance, and following distance
-     * to the defaults for the new unit system.
+     * Resets max range, selected range position, recording distance, and following
+     * distance to the defaults for the new unit system.
      *
      * @param distanceUnits New distance units (METRIC or IMPERIAL)
      */
     fun updateDistanceUnits(distanceUnits: DistanceUnits) {
         viewModelScope.launch {
-            val defaultMaxRange = when (distanceUnits) {
-                DistanceUnits.METRIC -> DEFAULT_METRIC_MAX_RANGE
-                DistanceUnits.IMPERIAL -> DEFAULT_IMPERIAL_MAX_RANGE
-            }
-            val defaultDistance = distanceUnits.defaultDistance()
+            val maxRange = distanceUnits.defaultMaxRange
+            val distance = distanceUnits.defaultDistance
             appSettings.updateUnitSettings(
                 distanceUnits = distanceUnits,
-                maxRange = defaultMaxRange,
-                selectedRange = defaultMaxRange / 2f,
-                recordingDistance = defaultDistance,
-                followingDistance = defaultDistance
+                maxRange = maxRange,
+                selectedRangeIndex = DistanceUnits.DEFAULT_SELECTED_RANGE_INDEX,
+                recordingDistance = distance,
+                followingDistance = distance
             )
         }
     }
@@ -187,19 +206,5 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
      */
     fun updateAdaptiveFollowing(enabled: Boolean) {
         viewModelScope.launch { appSettings.setAdaptiveFollowing(enabled) }
-    }
-
-    /**
-     * Generates a list of 4 range values (25%, 50%, 75%, 100% of max).
-     * Used by RangeSelector to display available radar range options.
-     *
-     * @param maximum Maximum range value (in meters or feet)
-     * @return List of 4 Float values representing range increments
-     */
-    fun generateRangeList(maximum: Int): List<Float> {
-        val length = 4
-        val divider = 4
-        val step = maximum / divider
-        return (1..length).map { i -> step * i * 1f }
     }
 }

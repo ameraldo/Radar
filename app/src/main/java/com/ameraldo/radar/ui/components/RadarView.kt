@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.core.graphics.withSave
 import com.ameraldo.radar.data.DistanceUnits
+import com.ameraldo.radar.utils.formatDistance
 import com.ameraldo.radar.ui.theme.amber500Color
 import com.ameraldo.radar.ui.theme.green500Color
 import com.ameraldo.radar.ui.theme.red500Color
@@ -197,16 +198,7 @@ fun RadarView(
              */
             if (r <= radarR * 0.75f && satelliteBlips == null) {
                 // Set label
-                val label = if (radarDistanceUnits == DistanceUnits.METRIC)
-                                if (ringDistance >= 1000f)
-                                    "${"%.1f".format(ringDistance / 1000f)}km"
-                                else
-                                    "${"%.1f".format(ringDistance)}m"
-                            else
-                                if (ringDistance >= 5280f)
-                                    "${"%.1f".format(ringDistance / 5280f)}mi"
-                                else
-                                    "${"%.1f".format(ringDistance)}ft"
+                val label = radarDistanceUnits.formatDistance(ringDistance)
                 // Set label angle
                 val angleDeg = 45f // Draw text at 45°
                 val angleRad = Math.toRadians(angleDeg.toDouble())

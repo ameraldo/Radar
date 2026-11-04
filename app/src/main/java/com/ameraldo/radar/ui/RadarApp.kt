@@ -80,31 +80,27 @@ fun RadarApp(
 
 
     val radarDistanceUnits       by settingsViewModel.distanceUnits.collectAsState()
-    val radarMaxRange            by settingsViewModel.maxRange.collectAsState()
     val selectedRange            by settingsViewModel.selectedRange.collectAsState()
-
-    val radarRangeList = remember(radarMaxRange) { settingsViewModel.generateRangeList(radarMaxRange) }
-    val radarRange = selectedRange.coerceIn(radarRangeList.min(), radarRangeList.max())
 
     // Convert recorded points to polar coordinates relative to current position
     // Uses remember to avoid recalculation unless dependencies change
     val recordedPolarPoints = remember(currentRoutePoints, locationState.latitude,
-        locationState.longitude, radarRange, radarDistanceUnits) {
+        locationState.longitude, selectedRange, radarDistanceUnits) {
         val lat = locationState.latitude
         val lon = locationState.longitude
         if (lat != null && lon != null) {
-            toPolarPoints(lat, lon, currentRoutePoints, radarRange, radarDistanceUnits)
+            toPolarPoints(lat, lon, currentRoutePoints, selectedRange, radarDistanceUnits)
         } else emptyList()
     }
 
     // Convert following points to polar coordinates relative to current position
     // Uses remember to avoid recalculation unless dependencies change
     val followingPolarPoints = remember(followingRemainingPoints, locationState.latitude,
-        locationState.longitude, radarRange, radarDistanceUnits) {
+        locationState.longitude, selectedRange, radarDistanceUnits) {
         val lat = locationState.latitude
         val lon = locationState.longitude
         if (lat != null && lon != null && followingRemainingPoints.isNotEmpty()) {
-            toPolarPoints(lat, lon, followingRemainingPoints, radarRange, radarDistanceUnits)
+            toPolarPoints(lat, lon, followingRemainingPoints, selectedRange, radarDistanceUnits)
         } else emptyList()
     }
 
@@ -171,7 +167,7 @@ fun RadarApp(
             nextPointToFollow = if (isFollowing && followingPolarPoints.isNotEmpty())
                 followingPolarPoints.firstOrNull()
             else null,
-            radarRange = radarRange,
+            radarRange = selectedRange,
             radarDistanceUnits = radarDistanceUnits
         )
     } else {

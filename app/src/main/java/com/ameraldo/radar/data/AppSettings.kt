@@ -5,8 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -22,15 +22,18 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
  * DataStore-based preferences manager for app settings.
  *
  * Provides reactive access to user preferences stored in Android DataStore.
- * Settings include distance units and radar range preferences.
+ * Settings include distance units, radar range, recording/following distance,
+ * and adaptive following.
+ *
+ * All unit-dependent option lists and default values live in [DistanceUnits].
  *
  * ## Default Values
- * - maxRange: 1000 meters (metric) or 5280 feet (imperial)
- * - selectedRange: 500 meters (metric) or 2640 feet (imperial)
+ * - maxRange: [DistanceUnits.defaultMaxRange]
+ * - selectedRangeIndex: [DistanceUnits.DEFAULT_SELECTED_RANGE_INDEX] (50%)
  * - distanceUnits: METRIC
  * - adaptiveFollowing: false (disabled)
- * - recordingDistance: 5 meters (metric) or 30 feet (imperial)
- * - followingDistance: 5 meters (metric) or 30 feet (imperial)
+ * - recordingDistance: [DistanceUnits.defaultDistance]
+ * - followingDistance: [DistanceUnits.defaultDistance]
  *
  * ## Usage
  * ```
@@ -45,8 +48,10 @@ class AppSettings(private val context: Context) {
     companion object {
         /** DataStore key for max range preference (in meters or feet depending on units) */
         val MAX_RANGE_KEY = intPreferencesKey("max_range")
-        /** DataStore key for selected range preference (displayed on radar) */
-        val SELECTED_RANGE_KEY = floatPreferencesKey("selected_range")
+        /** DataStore key for selected radar range position (0 = 25%, 3 = 100%) */
+        val SELECTED_RANGE_INDEX_KEY = intPreferencesKey("selected_range_index")
+        /** Legacy absolute selected range key, removed on the next write */
+        private val LEGACY_SELECTED_RANGE_KEY = floatPreferencesKey("selected_range")
         /** DataStore key for distance units preference (metric/imperial) */
         val DISTANCE_UNITS_KEY = stringPreferencesKey("distance_units")
         /** DataStore key for adaptive following preference (enables skipping ahead past missed waypoints) */
@@ -54,28 +59,10 @@ class AppSettings(private val context: Context) {
         val RECORDING_DISTANCE_KEY = intPreferencesKey("recording_distance")
         val FOLLOWING_DISTANCE_KEY = intPreferencesKey("following_distance")
 
-        /** Default max range: 1000 meters or 1000 feet */
-        const val DEFAULT_MAX_RANGE = 1000
-        /** Default selected range: 500 meters or 500 feet */
-        const val DEFAULT_SELECTED_RANGE = 500f
         /** Default distance units: metric */
         const val DEFAULT_DISTANCE_UNITS = "metric"
         /** Default adaptive following: disabled (strict single-point check) */
         const val DEFAULT_ADAPTIVE_FOLLOWING = false
-
-        /** Available recording/following distances in meters (metric) */
-        val METRIC_DISTANCES = listOf(1, 5, 10, 25, 50, 100)
-        /** Available recording/following distances in feet (imperial) */
-        val IMPERIAL_DISTANCES = listOf(3, 30, 80, 160, 320)
-        /** Default recording/following distance in meters (metric) */
-        const val DEFAULT_METRIC_DISTANCE = 5
-        /** Default recording/following distance in feet (imperial) */
-        const val DEFAULT_IMPERIAL_DISTANCE = 30
-
-        /** Default max radar range in meters (metric) */
-        const val DEFAULT_METRIC_MAX_RANGE = 1000
-        /** Default max radar range in feet (imperial) */
-        const val DEFAULT_IMPERIAL_MAX_RANGE = 5280
     }
 
     /**
@@ -95,11 +82,14 @@ class AppSettings(private val context: Context) {
 
     /** Flow of max radar range (in meters or feet depending on units) */
     val maxRange: Flow<Int> = context.dataStore.data.map { prefs ->
-        prefs[MAX_RANGE_KEY] ?: DEFAULT_MAX_RANGE
+        val units = DistanceUnits.fromString(prefs[DISTANCE_UNITS_KEY] ?: DEFAULT_DISTANCE_UNITS)
+        units.normalizeMaxRange(prefs[MAX_RANGE_KEY])
     }
-    /** Flow of selected radar range for display */
-    val selectedRange: Flow<Float> = context.dataStore.data.map { prefs ->
-        prefs[SELECTED_RANGE_KEY] ?: DEFAULT_SELECTED_RANGE
+    /** Flow of the selected radar range position (0 = 25%, 3 = 100%) */
+    val selectedRangeIndex: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[SELECTED_RANGE_INDEX_KEY]
+            ?.coerceIn(0, DistanceUnits.RANGE_STEP_COUNT - 1)
+            ?: DistanceUnits.DEFAULT_SELECTED_RANGE_INDEX
     }
     /** Flow of distance units preference */
     val distanceUnits: Flow<DistanceUnits> = context.dataStore.data.map { prefs ->
@@ -129,13 +119,15 @@ class AppSettings(private val context: Context) {
         }
     }
     /**
-     * Updates the selected radar range preference.
+     * Updates the selected radar range position.
      *
-     * @param range New selected range value
+     * @param index Position in the range list (0 = 25%, 3 = 100%)
      */
-    suspend fun setSelectedRange(range: Float) {
+    suspend fun setSelectedRangeIndex(index: Int) {
         context.dataStore.edit { prefs ->
-            prefs[SELECTED_RANGE_KEY] = range
+            prefs[SELECTED_RANGE_INDEX_KEY] =
+                index.coerceIn(0, DistanceUnits.RANGE_STEP_COUNT - 1)
+            prefs.remove(LEGACY_SELECTED_RANGE_KEY)
         }
     }
     /**
@@ -159,23 +151,25 @@ class AppSettings(private val context: Context) {
      *
      * @param distanceUnits New distance units (METRIC or IMPERIAL)
      * @param maxRange Maximum radar range in the new units
-     * @param selectedRange Selected radar range in the new units
+     * @param selectedRangeIndex Selected radar range position (0 = 25%, 3 = 100%)
      * @param recordingDistance Recording distance in the new units
      * @param followingDistance Following distance in the new units
      */
     suspend fun updateUnitSettings(
         distanceUnits: DistanceUnits,
         maxRange: Int,
-        selectedRange: Float,
+        selectedRangeIndex: Int,
         recordingDistance: Int,
         followingDistance: Int
     ) {
         context.dataStore.edit { prefs ->
             prefs[DISTANCE_UNITS_KEY] = distanceUnits.value
             prefs[MAX_RANGE_KEY] = maxRange
-            prefs[SELECTED_RANGE_KEY] = selectedRange
+            prefs[SELECTED_RANGE_INDEX_KEY] =
+                selectedRangeIndex.coerceIn(0, DistanceUnits.RANGE_STEP_COUNT - 1)
             prefs[RECORDING_DISTANCE_KEY] = recordingDistance
             prefs[FOLLOWING_DISTANCE_KEY] = followingDistance
+            prefs.remove(LEGACY_SELECTED_RANGE_KEY)
         }
     }
     /**
@@ -206,63 +200,6 @@ class AppSettings(private val context: Context) {
     suspend fun setFollowingDistance(distance: Int) {
         context.dataStore.edit { prefs ->
             prefs[FOLLOWING_DISTANCE_KEY] = distance
-        }
-    }
-}
-
-/**
- * Distance units enumeration.
- *
- * @property value String representation for storage
- */
-enum class DistanceUnits(val value: String) {
-    /** Metric units: kilometers, meters */
-    METRIC("metric"),
-    /** Imperial units: miles, feet */
-    IMPERIAL("imperial");
-
-    /**
-     * Returns the selectable recording/following distances for this unit system.
-     *
-     * @return Metric values in meters or imperial values in feet
-     */
-    fun distanceOptions(): List<Int> = when (this) {
-        METRIC -> AppSettings.METRIC_DISTANCES
-        IMPERIAL -> AppSettings.IMPERIAL_DISTANCES
-    }
-
-    /**
-     * Returns the default recording/following distance for this unit system.
-     *
-     * @return Default distance in meters (metric) or feet (imperial)
-     */
-    fun defaultDistance(): Int = when (this) {
-        METRIC -> AppSettings.DEFAULT_METRIC_DISTANCE
-        IMPERIAL -> AppSettings.DEFAULT_IMPERIAL_DISTANCE
-    }
-
-    /**
-     * Normalizes a stored distance to a valid option for this unit system.
-     *
-     * Missing or legacy values (for example a metric value after switching to
-     * imperial) fall back to [defaultDistance].
-     *
-     * @param stored Distance read from DataStore, or null if unset
-     * @return A value from [distanceOptions]
-     */
-    fun normalizeDistance(stored: Int?): Int =
-        if (stored != null && stored in distanceOptions()) stored else defaultDistance()
-
-    companion object {
-        /**
-         * Converts a string value to DistanceUnits.
-         * Returns [METRIC] if the string doesn't match any known value.
-         *
-         * @param value String value from DataStore (e.g., "metric", "imperial")
-         * @return DistanceUnits enum or METRIC as default fallback
-         */
-        fun fromString(value: String): DistanceUnits {
-            return entries.find { it.value == value } ?: METRIC
         }
     }
 }

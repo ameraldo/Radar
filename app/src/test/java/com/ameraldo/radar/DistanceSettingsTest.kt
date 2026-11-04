@@ -1,7 +1,7 @@
 package com.ameraldo.radar
 
-import com.ameraldo.radar.data.AppSettings
 import com.ameraldo.radar.data.DistanceUnits
+import com.ameraldo.radar.data.rangeSteps
 import com.ameraldo.radar.utils.toMeters
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -22,20 +22,20 @@ class DistanceSettingsTest {
 
     @Test
     fun distanceOptions_matchUnitSystem() {
-        assertEquals(listOf(1, 5, 10, 25, 50, 100), DistanceUnits.METRIC.distanceOptions())
-        assertEquals(listOf(3, 30, 80, 160, 320), DistanceUnits.IMPERIAL.distanceOptions())
+        assertEquals(listOf(1, 5, 10, 25, 50, 100), DistanceUnits.METRIC.distanceOptions)
+        assertEquals(listOf(3, 15, 30, 80, 160, 320), DistanceUnits.IMPERIAL.distanceOptions)
     }
 
     @Test
     fun defaultDistance_matchesUnitSystem() {
-        assertEquals(5, DistanceUnits.METRIC.defaultDistance())
-        assertEquals(30, DistanceUnits.IMPERIAL.defaultDistance())
+        assertEquals(5, DistanceUnits.METRIC.defaultDistance)
+        assertEquals(15, DistanceUnits.IMPERIAL.defaultDistance)
     }
 
     @Test
     fun normalizeDistance_missingValue_returnsDefault() {
         assertEquals(5, DistanceUnits.METRIC.normalizeDistance(null))
-        assertEquals(30, DistanceUnits.IMPERIAL.normalizeDistance(null))
+        assertEquals(15, DistanceUnits.IMPERIAL.normalizeDistance(null))
     }
 
     @Test
@@ -47,14 +47,39 @@ class DistanceSettingsTest {
     @Test
     fun normalizeDistance_legacyValue_fallsBackToDefault() {
         assertEquals(5, DistanceUnits.METRIC.normalizeDistance(15))
-        assertEquals(30, DistanceUnits.IMPERIAL.normalizeDistance(5))
+        assertEquals(15, DistanceUnits.IMPERIAL.normalizeDistance(5))
+    }
+
+    @Test
+    fun maxRangeOptions_matchUnitSystem() {
+        assertEquals(
+            listOf(100, 500, 1000, 1500, 2000, 5000),
+            DistanceUnits.METRIC.maxRangeOptions
+        )
+        assertEquals(
+            listOf(1320, 2640, 5280, 7920, 10560, 26400),
+            DistanceUnits.IMPERIAL.maxRangeOptions
+        )
+    }
+
+    @Test
+    fun normalizeMaxRange_missingOrLegacy_returnsDefault() {
+        assertEquals(1000, DistanceUnits.METRIC.normalizeMaxRange(null))
+        assertEquals(5280, DistanceUnits.IMPERIAL.normalizeMaxRange(1000))
     }
 
     @Test
     fun unitDefaults_haveSensibleRanges() {
-        assertEquals(1000, AppSettings.DEFAULT_METRIC_MAX_RANGE)
-        assertEquals(5280, AppSettings.DEFAULT_IMPERIAL_MAX_RANGE)
-        assertEquals(500f, AppSettings.DEFAULT_METRIC_MAX_RANGE / 2f, 0.0001f)
-        assertEquals(2640f, AppSettings.DEFAULT_IMPERIAL_MAX_RANGE / 2f, 0.0001f)
+        assertEquals(1000, DistanceUnits.METRIC.defaultMaxRange)
+        assertEquals(5280, DistanceUnits.IMPERIAL.defaultMaxRange)
+        assertEquals(500f, DistanceUnits.METRIC.defaultMaxRange / 2f, 0.0001f)
+        assertEquals(2640f, DistanceUnits.IMPERIAL.defaultMaxRange / 2f, 0.0001f)
+    }
+
+    @Test
+    fun rangeSteps_areQuarterIncrements() {
+        assertEquals(listOf(250f, 500f, 750f, 1000f), rangeSteps(1000))
+        assertEquals(listOf(1320f, 2640f, 3960f, 5280f), rangeSteps(5280))
+        assertEquals(listOf(330f, 660f, 990f, 1320f), rangeSteps(1320))
     }
 }

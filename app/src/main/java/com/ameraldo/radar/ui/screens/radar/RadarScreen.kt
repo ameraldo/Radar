@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -63,13 +62,11 @@ fun RadarScreen(
     val followingRemainingPoints by locationViewModel.followingRemainingPoints.collectAsState()
 
     val radarDistanceUnits       by settingsViewModel.distanceUnits.collectAsState()
-    val radarMaxRange            by settingsViewModel.maxRange.collectAsState()
+    val radarRangeList           by settingsViewModel.radarRangeList.collectAsState()
+    val selectedRangeIndex       by settingsViewModel.selectedRangeIndex.collectAsState()
     val selectedRange            by settingsViewModel.selectedRange.collectAsState()
 
     val pendingStopAction        by uiStateViewModel.pendingStopAction.collectAsState()
-
-    val radarRangeList = remember(radarMaxRange) { settingsViewModel.generateRangeList(radarMaxRange) }
-    val radarRange = selectedRange.coerceIn(radarRangeList.min(), radarRangeList.max())
 
     val windowInfo = LocalWindowInfo.current
     val radarHeight = with(LocalDensity.current) {
@@ -93,7 +90,7 @@ fun RadarScreen(
                 followingPolarPoints.firstOrNull()
             else
                 null,
-            radarRange = radarRange,
+            radarRange = selectedRange,
             radarDistanceUnits = radarDistanceUnits
         )
         Column(
@@ -109,10 +106,10 @@ fun RadarScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             RangeSelector(
-                selectedRange = radarRange,
+                selectedIndex = selectedRangeIndex,
                 rangeList = radarRangeList,
                 distanceUnits = radarDistanceUnits,
-                onRangeChange = { settingsViewModel.updateSelectedRange(it) }
+                onRangeChange = settingsViewModel::updateSelectedRangeIndex
             )
             Spacer(modifier = Modifier.height(8.dp))
             RouteCard(
