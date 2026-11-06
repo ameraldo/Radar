@@ -3,6 +3,10 @@ package com.ameraldo.radar.data
 /**
  * Sealed class representing location-related errors.
  *
+ * TODO(location-errors): [ServiceUnavailable] and [OtherError] are declared and rendered
+ *  by CurrentLocationCard but are never constructed. Wire them up from LocationService
+ *  (see the TODOs in startLocationUpdates()).
+ *
  * @see NONE No error state
  * @see PermissionDenied Location permission denied by user
  * @see ServiceUnavailable Location services disabled or unavailable

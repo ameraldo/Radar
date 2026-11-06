@@ -28,10 +28,10 @@ data class RouteEntity(
 | Property | Type | Description |
 |----------|------|-------------|
 | `id` | Long | Primary key, auto-generated |
-| `name` | String | Route display name |
-| `startTime` | Long | Unix timestamp of route start |
-| `endTime` | Long? | Unix timestamp of route end (null if recording) |
-| `pointCount` | Int | Number of recorded points |
+| `name` | String | Route display name; auto-generated as `(In Progress) Route yyyy-MM-dd HH:mm` and user-renamable |
+| `startTime` | Long | Unix timestamp in milliseconds when recording started |
+| `endTime` | Long? | Unix timestamp in milliseconds when recording stopped (null while recording) |
+| `pointCount` | Int | Number of recorded points; finalized when recording stops |
 
 ## RecordedPointEntity
 
@@ -53,7 +53,7 @@ data class RecordedPointEntity(
     val routeId: Long?,
     val latitude: Double,
     val longitude: Double,
-    val elevation: Double?,
+    val elevation: Double? = null,
     val timestamp: Long,
     val sequenceNumber: Int
 )
@@ -62,17 +62,18 @@ data class RecordedPointEntity(
 | Property | Type | Description |
 |----------|------|-------------|
 | `id` | Long | Primary key, auto-generated |
-| `routeId` | Long? | Foreign key to parent route |
+| `routeId` | Long? | Foreign key to parent route; nullable, so a point can exist without an assigned route |
 | `latitude` | Double | GPS latitude |
 | `longitude` | Double | GPS longitude |
 | `elevation` | `Double?` | Elevation in meters above sea level (null if unavailable) |
-| `timestamp` | Long | Unix timestamp of point |
+| `timestamp` | Long | Unix timestamp in milliseconds when the point was recorded |
 | `sequenceNumber` | Int | Order in the route |
 
 ## Relationships
 
 - Each `RouteEntity` can have many `RecordedPointEntity` (one-to-many)
 - Deleting a route automatically deletes all its points (CASCADE)
+- A point with `routeId = null` is not associated with any route and will not appear in that route's point list, point count, or GPX export
 
 ## Related Documentation
 

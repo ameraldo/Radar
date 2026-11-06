@@ -41,6 +41,7 @@ graph TB
 
     LocationVM -->|observes| LocService
     LocationVM -->|starts via intents| LocService
+    LocationVM -->|renames routes| Room
     LocService -->|writes| Room
     RouteVM -->|reads/writes| Room
     SettingsVM -->|reads/writes| DataStore
@@ -59,7 +60,7 @@ sequenceDiagram
 
     GPS->>FLP: Satellite signals
     FLP->>Service: onLocationResult(LocationResult)
-    Service->>Service: _locationState.update()
+    Service->>Service: _locationState.value = _locationState.value.copy(...)
     Service->>Service: handleLocationUpdate()
 
     alt Recording Active
@@ -101,12 +102,23 @@ sequenceDiagram
     Service->>Service: Stop following if active
     Service->>Service: _isRecording = true
     Service->>Notif: startForeground("Recording route")
-    Service->>Service: generateRouteNameAndSave() (async)
+    Service->>Service: generateRouteNameAndSave() (launches coroutine)
+    Service->>Service: startLocationUpdates() (immediately)
+    Note over Service,Room: Async coroutine
     Service->>Room: insertRoute(RouteEntity)
+    Room-->>Service: routeId
+    Service->>Service: _currentRouteId = routeId
     Service->>State: setRecordingState(true, routeId, routeName)
     Service->>Service: Insert first point if a fix is already available
-    Service->>Service: startLocationUpdates()
 ```
+
+> **Known limitation — possible `routeId = null` point:** `generateRouteNameAndSave()`
+> runs asynchronously, and `startLocationUpdates()` is called immediately after it is
+> launched. A location callback can therefore arrive before `_currentRouteId` has been
+> assigned. `handleRecordingLocationUpdate()` then inserts a `RecordedPointEntity` with
+> `routeId = null`. Because `routeId` is nullable, the insert succeeds, but the point is
+> not returned by `getPointsForRoute(routeId)`, is not included in `pointCount`, and is
+> not exported to GPX. A code comment marks this for a future fix.
 
 ## Route Following Flow
 
@@ -134,16 +146,16 @@ sequenceDiagram
     Service->>Service: _followingRemainingPoints = points.reversed()
     Service->>Service: startLocationUpdates()
     Service->>State: setFollowingState(true, routeId)
-    Radar->>VM: Observe currentRoutePoints / followingRemainingPoints
+    App->>VM: Observe currentRoutePoints (for polar conversion)
+    Radar->>VM: Observe followingRemainingPoints (next point to reach)
 
     loop Each location update
         alt Adaptive following enabled
-            Service->>Service: Find furthest remaining point within following distance
+            Service->>Service: Find first remaining point within following distance
+            Service->>Service: Drop that point and all earlier remaining points
         else Strict following
             Service->>Service: Check only the next point within following distance
-        end
-        alt Point(s) reached
-            Service->>Service: Drop reached point(s) from _followingRemainingPoints
+            Service->>Service: Drop the next point if it is reached
         end
         alt Remaining points now empty
             Note over Service: On the next location update
@@ -214,7 +226,7 @@ sequenceDiagram
     GPS->>Callback: onSatelliteStatusChanged(GnssStatus)
     Callback->>Service: Map satellite data to SatelliteBlip
     Note over Service: angleDeg: azimuth (0-360°)<br/>radiusFraction: elevation → 0-1<br/>isLocked: usedInFix<br/>signalStrength: Cn0DbHz<br/>constellation: GPS/GLONASS/Galileo/etc.
-    Service->>Service: _locationState.update(satellites = blips)
+    Service->>Service: _locationState.value = _locationState.value.copy(satellites = blips)
     Service-->>UI: StateFlow emits updated satellites
     UI->>UI: Draw satellite blips on radar
 ```

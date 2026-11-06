@@ -8,10 +8,12 @@ This guide covers setting up the development environment for Radar.
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Android Studio | Chipmunk (2022.3) or later | IDE |
+| Android Studio | Current stable release with AGP 9.x support | IDE |
 | JDK | 17+ | Java Development Kit |
-| Android SDK | API 35+ | Android SDK |
-| Gradle | 9.x (included) | Build system |
+| Android SDK | API 36.1 for `compileSdk`; API 35 minimum for running | Android SDK |
+| Gradle | 9.3.1 (included via wrapper) | Build system |
+| Android Gradle Plugin | 9.1.1 | Build configuration |
+| Kotlin | 2.3.21 | Language and Compose compiler plugin |
 
 ### System Requirements
 
@@ -34,7 +36,8 @@ This guide covers setting up the development environment for Radar.
 1. Open Android Studio
 2. Go to **Tools → SDK Manager**
 3. Install:
-   - **Android SDK Platform** (API 35, API 36)
+   - **Android SDK Platform 36.1** (API 36, minor level 1)
+   - **Android SDK Platform 35** (minimum supported runtime)
    - **Android SDK Build-Tools**
    - **Android SDK Command-line Tools**
 
@@ -69,18 +72,21 @@ Radar/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/ameraldo/radar/
-│   │   │   │   ├── service/      # LocationService
-│   │   │   │   ├── viewmodel/    # ViewModels
-│   │   │   │   ├── data/         # Database, DAOs
-│   │   │   │   ├── ui/           # Compose screens
-│   │   │   │   └── utils/        # Utilities
-│   │   │   ├── res/              # Resources
+│   │   │   │   ├── MainActivity.kt # Main activity, service binding, PiP mode
+│   │   │   │   ├── navigation/     # AppDestinations (top-level tabs)
+│   │   │   │   ├── service/        # LocationService
+│   │   │   │   ├── viewmodel/      # ViewModels
+│   │   │   │   ├── data/           # Database, DAOs, DataStore
+│   │   │   │   ├── ui/             # Compose UI (RadarApp, screens, components, theme)
+│   │   │   │   └── utils/          # Utilities
+│   │   │   ├── res/                # Resources
 │   │   │   └── AndroidManifest.xml
-│   │   ├── test/                 # Unit tests
-│   │   └── androidTest/          # Instrumented tests
+│   │   ├── test/                   # Unit tests
+│   │   └── androidTest/            # Instrumented tests
 │   └── build.gradle.kts
 ├── gradle/
-│   └── libs.versions.toml        # Version catalog
+│   ├── libs.versions.toml          # Version catalog
+│   └── wrapper/                    # Gradle wrapper (9.3.1)
 ├── build.gradle.kts
 ├── settings.gradle.kts
 └── README.md
@@ -104,7 +110,7 @@ Radar/
 1. Create virtual device:
    - Tools → AVD Manager → Create Virtual Device
 2. Select device (Pixel recommended)
-3. Select system image (API 35+)
+3. Select a system image (API 35 or newer; API 36 is recommended)
 4. Run emulator
 
 ---

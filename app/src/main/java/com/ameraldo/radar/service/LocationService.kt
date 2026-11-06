@@ -108,7 +108,8 @@ class LocationService : Service() {
     /**
      * Whether adaptive following is enabled, sourced from [AppSettings] DataStore.
      * Collected reactively in [onCreate] so changes apply immediately during following.
-     * - true: scan all remaining points, skip ahead to the furthest match
+     * - true: scan the remaining points and skip to the first point within the
+     *   configured following distance
      * - false: strict mode, only check the single next point
      */
     private var adaptiveFollowingEnabled = false
@@ -526,6 +527,9 @@ class LocationService : Service() {
             stopSelf()
             return
         }
+        // NOTE: generateRouteNameAndSave() launches a coroutine, and startLocationUpdates()
+        // is called immediately afterwards. A location callback can therefore arrive before
+        // _currentRouteId has been assigned. See the TODO in handleRecordingLocationUpdate().
         generateRouteNameAndSave(routeName)
         startLocationUpdates()
     }
@@ -713,12 +717,18 @@ class LocationService : Service() {
         val googlePlayServicesAvailable = GoogleApiAvailability.getInstance()
             .isGooglePlayServicesAvailable(applicationContext) == ConnectionResult.SUCCESS
         if (!googlePlayServicesAvailable) {
+            // TODO(location-errors): Emit LocationError.ServiceUnavailable (with a message)
+            //  instead of only stopping the service. The UI branch in CurrentLocationCard
+            //  already exists but is currently unreachable.
             stopSelf()
             return
         }
         val request = LocationRequest.Builder(
             Priority.PRIORITY_HIGH_ACCURACY, 2000L
         ).build()
+        // TODO(location-errors): Surface request failures as LocationError.OtherError
+        //  (or a permission-specific error) instead of only calling stopSelf(). The UI
+        //  branch in CurrentLocationCard already exists but is currently unreachable.
         try {
             fusedLocationClient.requestLocationUpdates(request, locationCallback, null)
             locationManager.registerGnssStatusCallback(gnssCallback, null)
@@ -781,6 +791,12 @@ class LocationService : Service() {
                               ) >= recordingDistanceMeters
 
         if (distanceOk) {
+            // TODO(recording-async): generateRouteNameAndSave() runs asynchronously and
+            //  startLocationUpdates() is called immediately, so this callback can run before
+            //  _currentRouteId is assigned. The point is then inserted with routeId = null,
+            //  which makes it an orphan: it is not returned by getPointsForRoute(), is not
+            //  included in pointCount, and is not exported to GPX. Guard on a non-null route ID
+            //  or await route creation before starting location updates.
             val point = RecordedPointEntity(
                 routeId = _currentRouteId.value,
                 latitude = location.latitude,
@@ -803,8 +819,9 @@ class LocationService : Service() {
      * Handles a location update during active following.
      *
      * Two modes of operation controlled by [adaptiveFollowingEnabled]:
-     * - **Adaptive mode** (enabled): Scans ALL remaining points and finds the furthest
-     *   point within the configured following distance. Skips ahead past all points up to that match.
+     * - **Adaptive mode** (enabled): Scans the remaining points and finds the FIRST point
+     *   within the configured following distance, then drops that point and all earlier
+     *   remaining points.
      * - **Strict mode** (disabled): Checks only the single next point (index 0).
      *   If within the configured following distance, removes it. Original sequential behavior.
      *

@@ -4,7 +4,7 @@
 
 ## Overview
 
-The Routes Screen shows all saved GPS routes, allowing users to view, follow, or delete them.
+The Routes Screen shows all saved GPS routes, allowing users to follow, export, or delete them.
 
 ## Location
 
@@ -12,28 +12,42 @@ The Routes Screen shows all saved GPS routes, allowing users to view, follow, or
 
 ## Features
 
+### Screen Header
+- Displays the title "Routes".
+- Includes an Upload icon for import/export.
+- The import/export action is **not implemented yet**; the button currently has no effect.
+
 ### Route List
-- Displays all saved routes
-- Sorted by start time (newest first)
-- Each route shows:
-  - Route name
-  - Date/time recorded
-  - Number of points
-  - Duration (if ended)
+- Displays all saved routes.
+- Sorted by start time (newest first).
+- Each route item shows:
+  - Route name.
+  - Formatted date/time (`MMM dd, yyyy HH:mm`).
+  - Point count as `"N points"`.
+- The whole card is clickable to start following.
+- A download icon exports the route as GPX.
+- A red delete icon opens a delete confirmation dialog.
+- Duration and distance are not shown.
 
 ### Empty State
-- Shown when no routes saved
-- Displays helpful message
+- Shown by `RoutesScreen` when no routes are saved.
+- Displays:
+  - "No Saved Routes"
+  - "Your saved routes will appear here."
 
 ### Route Selection
-- Tap route to select it for following
-- Navigates to Radar Screen in following mode
+- Tapping a route immediately starts following it.
+- Navigates to the Radar Screen in following mode.
+- There is no separate selection state.
 
 ### GPX Export
-- Download button on each route item
-- Uses Storage Access Framework — user chooses save location
-- Exports route as GPX 1.1 XML file
-- Filename derived from route name
+- Download button on each route item.
+- Uses Storage Access Framework — the user chooses the save location.
+- Exports the route as a GPX 1.1 XML file.
+- Filename is derived from the route name:
+  1. Whitespace is replaced with `_`.
+  2. Characters outside `[a-zA-Z0-9_.-]` are removed.
+  3. `.gpx` is appended.
 
 ## UI Components
 
@@ -49,48 +63,53 @@ The Routes Screen shows all saved GPS routes, allowing users to view, follow, or
 
 ## Route Item Display
 
+Saved route:
+
 ```
 ┌─────────────────────────────────────┐
-│ Route 2024-01-15 10:30              │
-│ 150 points • 1.2 km • 45 min        │
+│ Morning hike                        │
+│ Jan 15, 2026 10:30                  │
+│ 150 points                          │
+│                  [download] [delete] │
 └─────────────────────────────────────┘
 ```
 
-Or when recording in progress:
+Route still being recorded:
+
 ```
 ┌─────────────────────────────────────┐
-│ Route 2024-01-15 10:30 (Recording)  │
-│ 45 points                           │
+│ (In Progress) Route 2026-01-15 10:30│
+│ Jan 15, 2026 10:30                  │
+│ 0 points                            │
+│                  [download] [delete] │
 └─────────────────────────────────────┘
 ```
+
+In-progress routes normally show `0 points` because `pointCount` is written only when recording stops. **TODO:** Add a live point count or "Recording…" label; not implemented yet.
 
 ## Data Model
 
-### RouteEntity
+See [RouteEntity](../api/RouteEntity.md) for the full entity definitions. Key points:
 
-```kotlin
-data class RouteEntity(
-    val id: Long = 0,
-    val name: String,              // "Route YYYY-MM-DD HH:MM"
-    val startTime: Long,           // Unix timestamp
-    val endTime: Long? = null,     // Null if recording in progress
-    val pointCount: Int = 0        // Number of recorded points
-)
-```
+- `name` is auto-generated as `(In Progress) Route yyyy-MM-dd HH:mm` and can be renamed in the save dialog.
+- `startTime` and `endTime` are Unix timestamps in milliseconds.
+- `endTime` is `null` while recording is in progress.
+- `pointCount` is finalized when recording stops.
 
 ## User Interactions
 
-1. **View routes**: Browse saved routes list
-2. **Follow route**: Tap route to start navigation
-3. **Export route**: Tap download icon to save as GPX file
-4. **Delete route**: Tap delete icon in RoutesList
+1. **View routes**: Browse the saved routes list.
+2. **Follow route**: Tap a route card to start following it.
+3. **Export route**: Tap the download icon to save it as a GPX file.
+4. **Delete route**: Tap the delete icon and confirm.
+5. **Import/Export**: The header Upload button is a placeholder and is not implemented yet.
 
 ## Storage
 
-Routes stored in Room database:
+Routes are stored in the Room database:
 - Table: `routes`
-- Points stored in `recorded_points` table
-- CASCADE delete removes points when route deleted
+- Points are stored in the `recorded_points` table
+- CASCADE delete removes points when a route is deleted
 
 ## Related Documentation
 

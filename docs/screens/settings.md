@@ -14,7 +14,7 @@ The Settings Screen allows users to configure app preferences including distance
 
 ### Adaptive Following
 - Toggle automatic skipping of missed waypoints during route following
-- When enabled: scans all remaining points, skips ahead to the furthest match within the configured following distance
+- When enabled: on each location update, scans the remaining points and drops everything up to and including the **first** point within the configured following distance
 - When disabled: strict mode, only checks the single next point
 - Default: disabled
 

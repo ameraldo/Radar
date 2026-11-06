@@ -51,7 +51,9 @@ Output: `app/build/reports/androidTests/connected/index.html`
 
 ```
 app/src/test/java/com/ameraldo/radar/
-├── ExampleUnitTest.kt      # Sample unit test
+├── ExampleUnitTest.kt          # Sample unit test
+├── DistanceFormatterTest.kt    # Metric/imperial formatting, fractions, thresholds
+└── DistanceSettingsTest.kt     # Unit options, defaults, normalization, range steps
 ```
 
 Example:
@@ -134,26 +136,11 @@ fun testViewModel() {
 
 ## Code Coverage
 
-### Generate Coverage Report
+No JaCoCo plugin or coverage task is configured in this project, so there is
+currently no `jacocoTestReport` task and no coverage report output.
 
-```bash
-./gradlew testDebugUnitTest jacocoTestReport
-```
-
-Output: `app/build/reports/jacoco/jacocoTestReport/html/index.html`
-
-### Coverage Configuration
-
-In `app/build.gradle.kts`:
-
-```kotlin
-tasks.withType<Test> {
-    configure<JacocoTaskExtension> {
-        isIncludeNoLocationClasses = true
-        excludes = listOf("jdk.internal.*")
-    }
-}
-```
+To add coverage later, apply the JaCoCo plugin and configure a report task in
+`app/build.gradle.kts` before running it.
 
 ---
 

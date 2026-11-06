@@ -1,8 +1,8 @@
 # RoutesList Component
 
-> Displays a list of saved routes with follow/delete actions.
+> Displays a list of saved routes with follow/download/delete actions.
 
-RoutesList shows all saved routes in a LazyColumn with the ability to follow or delete each route.
+RoutesList shows all saved routes in a `LazyColumn` and starts following when a route card is tapped.
 
 ## Overview
 
@@ -14,37 +14,38 @@ RoutesList shows all saved routes in a LazyColumn with the ability to follow or 
 - Scrollable list using `LazyColumn`
 - Each item shows:
   - Route name
-  - Formatted date/time
-  - Point count
-  - Delete button (trash icon)
-- Tapping a route starts following it
-
-### Empty State
-- Shows "No Saved Routes" message
-- Displays helpful text: "Your saved routes will appear here."
+  - Formatted date/time (`MMM dd, yyyy HH:mm`)
+  - Point count (`"N points"`)
+  - Download button (download icon)
+  - Delete button (red trash icon)
+- Tapping the whole card starts following that route
+- The empty state is handled by [RoutesScreen](../screens/routes.md), not by `RoutesList`
 
 ### Delete Confirmation
 - Uses `ConfirmationDialog` for delete confirmation
-- Route ID passed to dialog via `rememberSavable`
+- Route ID used for the dialog is stored with `rememberSaveable`
 
 ### GPX Export
-- Download button on each route item triggers Storage Access Framework file picker
-- User chooses save location for the `.gpx` file
+- Download button on each route item triggers the Storage Access Framework file picker
+- User chooses the save location for the `.gpx` file
 - Exported file follows GPX 1.1 format
-- Filename derived from route name (whitespace replaced with `_`)
+- Filename is derived from the route name:
+  1. Whitespace is replaced with `_`.
+  2. Characters outside `[a-zA-Z0-9_.-]` are removed.
+  3. `.gpx` is appended.
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `routesViewModel` | `RouteViewModel` | For accessing saved routes |
+| `routeViewModel` | `RouteViewModel` | For accessing saved routes and exporting them |
 | `onFollowRoute` | `(Long) -> Unit` | Callback with route ID when user wants to follow |
 
 ## Sub-Components
 
 | Component | Description |
 |-----------|-------------|
-| `RoutesListItem` | Single route item with name, date, points |
+| `RoutesListItem` | Single route item with name, date, points, and action buttons |
 | `ConfirmationDialog` | Delete confirmation dialog |
 
 ## Route Item Display
@@ -55,6 +56,8 @@ Each `RoutesListItem` shows:
 - **Point count**: "X points"
 - **Download button**: GPX export (download icon)
 - **Delete button**: Red trash icon (delete icon)
+
+In-progress routes normally show `0 points` because `pointCount` is finalized when recording stops. **TODO:** Add a live point count or "Recording…" label; not implemented yet.
 
 ## Related Documentation
 

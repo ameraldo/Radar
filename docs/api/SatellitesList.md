@@ -1,19 +1,19 @@
-# SatellitesList Component#
+# SatellitesList Component
 
 > Displays GPS satellite information with detailed dialog.
 
 SatellitesList shows a card with satellite count and opens a full dialog with detailed satellite information (signal strength, azimuth, elevation, etc.).
 
-## Overview#
+## Overview
 
 **Location**: `app/src/main/java/com/ameraldo/radar/ui/screens/home/SatellitesList.kt`
 
-## Features#
+## Features
 
 ### Satellite Card
 - Shows locked count / total in view (e.g., "3 locked / 12 in view")
 - Tappable to open detailed dialog
-- Uses `rememberSavable` for dialog state persistence
+- Uses `rememberSaveable` for dialog state persistence
 
 ### Satellite Dialog
 - Full-screen dialog with:
@@ -22,14 +22,14 @@ SatellitesList shows a card with satellite count and opens a full dialog with de
   - Lock status badge ("LOCKED" / "VISIBLE")
   - Detail grid (azimuth, elevation, signal, almanac, ephemeris, frequency)
 
-## Parameters#
+## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `satellites` | `List<SatelliteBlip>` | List of visible GPS satellites |
 | `modifier` | `Modifier` | Modifier for styling |
 
-## Sub-Components#
+## Sub-Components
 
 | Component | Description |
 |-----------|-------------|
@@ -39,7 +39,11 @@ SatellitesList shows a card with satellite count and opens a full dialog with de
 | `SignalBar` | Signal strength bar with color coding |
 | `DetailItem` | Label-value pair for satellite details |
 
-## Signal Strength Labels#
+## Signal Strength Labels
+
+These thresholds apply to the satellite dialog and signal bar, not to the
+`RadarView` satellite blips (which use locked-green and a continuous gradient for
+unlocked satellites).
 
 | Signal (dB-Hz) | Label | Color |
 |---------------|-------|-------|
@@ -49,7 +53,7 @@ SatellitesList shows a card with satellite count and opens a full dialog with de
 | 20-29 | Poor | Orange |
 | <20 | Very Weak | Red |
 
-## Related Documentation#
+## Related Documentation
 
 - [SatelliteBlip](../api/SatelliteBlip.md) - Data model
 - [Home Screen](../screens/home.md) - Parent screen

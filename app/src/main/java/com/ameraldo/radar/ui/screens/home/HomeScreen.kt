@@ -102,7 +102,7 @@ fun HomeScreen(
         ) {
             Icon(
                 imageVector        = Icons.AutoMirrored.Filled.AssistantDirection,
-                contentDescription = "Go to Routes",
+                contentDescription = "Start Recording",
                 tint               = if (isRecording)
                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 else

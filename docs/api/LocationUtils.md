@@ -23,17 +23,6 @@ Converts a list of recorded GPS points to polar coordinates relative to current 
 
 **Returns**: `List<PolarPoint>` ready for radar display
 
-### toPolarPoint()
-
-Converts two lat/lon coordinates into a polar point relative to current position.
-
-**Parameters**:
-- `currentLat`, `currentLon`: Current position (origin)
-- `targetLat`, `targetLon`: Target position
-- `radarRange`, `radarDistanceUnits`: For radius fraction calculation
-
-**Returns**: `PolarPoint` with angle, radius fraction, and raw distance
-
 ### DistanceUnits.toMeters()
 
 Converts a distance to meters based on the unit system. Metric values are
@@ -56,6 +45,16 @@ where a = sin²(Δlat/2) + cos(lat1) × cos(lat2) × sin²(Δlon/2)
 - `lat2`, `lon2`: Second point coordinates
 
 **Returns**: Distance in meters (great-circle distance)
+
+## Private Helpers
+
+### `toPolarPoint()`
+
+Converts two lat/lon coordinates into a polar point relative to the current position.
+This function is **private** to `LocationUtils.kt` and is called by `toPolarPoints()`.
+
+- `radiusFraction` is calculated as `distanceMeters / radarRangeMeters`.
+- The fraction is clamped to `1.0`, so points beyond the radar range sit on the outer ring.
 
 ## Data Classes
 

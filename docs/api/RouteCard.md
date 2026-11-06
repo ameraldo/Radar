@@ -2,7 +2,7 @@
 
 > Card displaying route recording/following controls
 
-RouteCard shows the current route status and provides controls for starting/stopping recording or following.
+RouteCard provides the action button for starting or stopping recording and following. It does not display route metadata.
 
 ## Overview
 
@@ -11,24 +11,33 @@ RouteCard shows the current route status and provides controls for starting/stop
 ## Features
 
 ### Recording Mode
-- Shows "Stop Recording" button (red)
-- Triggers confirmation dialog
-- After stopping, shows save dialog for route name
+- Shows a red "Stop Recording" button.
+- Triggers a stop-confirmation dialog.
+- After stopping, opens the save-route dialog.
 
 ### Following Mode
-- Shows "Stop Following" button (red)
-- Triggers confirmation dialog
-- Completes when all points are reached
+- Shows a red "Stop Following" button.
+- Triggers a stop-confirmation dialog.
+- Calls `onFollowingComplete()` when confirmed.
+- Automatic completion when all points are reached is handled by the service, not by this card.
 
 ### Idle Mode
-- Shows "Start Recording" button (primary color)
-- Starts recording; navigation to the Radar screen is handled by the Home screen action
+- Shows a primary-colored "Start Recording" button.
+- Starts recording directly.
+- Navigation to the Radar screen is handled by the Home screen action.
+
+### What the Card Does Not Show
+- No route name.
+- No point count.
+- No recording duration.
+- No start-following action.
+- No floating action button.
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `locationViewModel` | `LocationViewModel` | For starting/stopping recording |
+| `locationViewModel` | `LocationViewModel` | For starting/stopping recording and saving/deleting the route |
 | `isRecording` | `Boolean` | Whether currently recording |
 | `isFollowing` | `Boolean` | Whether currently following a route |
 | `onFollowingComplete` | `() -> Unit` | Callback when following is stopped |
@@ -50,9 +59,11 @@ RouteCard shows the current route status and provides controls for starting/stop
 - On dismiss: Clear pending action
 
 ### Save Route Dialog
-- Text field for route name (pre-filled with current name)
-- "Save" button: Saves route with new name
-- "Delete" button: Discards route (deletes from database)
+- Text field for the route name.
+- Prefill removes the `(In Progress)` prefix from `currentRouteName` and trims whitespace.
+- If no route name is available, the fallback is `Route <currentTimeMillis>`.
+- "Save" button: Saves the route with the edited name.
+- "Delete" button: Discards the route (deletes it from the database).
 
 ## Related Documentation
 

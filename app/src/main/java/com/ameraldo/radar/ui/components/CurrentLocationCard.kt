@@ -43,6 +43,9 @@ import com.ameraldo.radar.data.LocationState
  * - Error: Shows error message with retry button
  * - Success: Shows latitude, longitude, accuracy
  *
+ * TODO(following-status): Show following status here as well. Only the recording
+ *  indicator is currently implemented.
+ *
  * @param locationState Current GPS location state
  * @param isRecording Whether recording is active (shows recording indicator)
  * @param onRetryGrantPermissions Callback to request location permissions

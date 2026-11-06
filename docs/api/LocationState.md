@@ -1,14 +1,14 @@
-# LocationState#
+# LocationState
 
-> Data model for current GPS location state#
+> Data model for current GPS location state
 
 LocationState holds the current GPS location information including coordinates, accuracy, and satellite data.
 
-## Overview#
+## Overview
 
 **Package**: `com.ameraldo.radar.data`
 
-## Properties#
+## Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
@@ -19,7 +19,7 @@ LocationState holds the current GPS location information including coordinates, 
 | `isLoading` | `Boolean` | Whether location is being acquired |
 | `error` | `LocationError` | Current error state (NONE if no error) |
 
-## State Flow#
+## State Flow
 
 ```
 GPS Update
@@ -34,23 +34,24 @@ LocationViewModel.locationState (StateFlow)
 UI Screens observe and display
 ```
 
-## Usage#
+## Usage
 
 ```kotlin
-// In LocationService
-_locationState.value = LocationState(
+// In LocationService — location updates modify the existing state with copy()
+_locationState.value = _locationState.value.copy(
     latitude = location.latitude,
     longitude = location.longitude,
     accuracy = location.accuracy,
-    satellites = blips,
-    isLoading = false,
-    error = LocationError.NONE
+    isLoading = false
 )
+
+// In LocationService — satellite updates replace only the satellite list
+_locationState.value = _locationState.value.copy(satellites = blips)
 ```
 
-## Related Documentation#
+## Related Documentation
 
-- [LocationService](LocationService.md) - Updates location state#
-- [LocationViewModel](../api/LocationViewModel.md) - Exposes state#
-- [SatelliteBlip](SatelliteBlip.md) - Satellite data model#
-- [LocationError](LocationError.md) - Error types#
+- [LocationService](LocationService.md) - Updates location state
+- [LocationViewModel](../api/LocationViewModel.md) - Exposes state
+- [SatelliteBlip](SatelliteBlip.md) - Satellite data model
+- [LocationError](LocationError.md) - Error types

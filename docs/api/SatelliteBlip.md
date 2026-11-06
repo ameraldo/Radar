@@ -23,15 +23,22 @@ SatelliteBlip represents a single GPS satellite with its position, signal streng
 | `hasEphemeris` | `Boolean` | Whether satellite has ephemeris data |
 | `carrierFrequencyMhz` | `Float?` | Carrier frequency in MHz (L1/L5) |
 
-## Signal Strength Colors
+## Signal Strength Labels
 
-| Signal (dB-Hz) | Color |
-|---------------|-------|
-| ≥42 | Green (Excelent) |
-| 35-41 | Light Green (Good) |
-| 30-34 | Yellow (Usable) |
-| 20-29 | Orange (Poor) |
-| <20 | Red (Very Weak) |
+The following discrete thresholds are used by the
+[SatellitesList](SatellitesList.md) dialog and its signal bar:
+
+| Signal (dB-Hz) | Label | Color |
+|---------------|-------|-------|
+| ≥42 | Excellent | Green |
+| 35-41 | Good | Light Green |
+| 30-34 | Usable | Yellow |
+| 20-29 | Poor | Orange |
+| <20 | Very Weak | Red |
+
+`RadarView` does not use these discrete thresholds. It renders locked satellites as
+green and unlocked satellites with a continuous red → orange → yellow gradient based
+on `signalStrength`.
 
 ## Data Flow
 

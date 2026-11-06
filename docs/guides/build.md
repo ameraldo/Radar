@@ -7,7 +7,10 @@ Guide for building the Radar Android application.
 | Variant | Description |
 |---------|-------------|
 | **debug** | Development build, debuggable |
-| **release** | Production build, optimized, signed |
+| **release** | Release build; currently signed with the debug keystore and minification disabled |
+
+> The current release configuration is not production-ready: `isMinifyEnabled = false`
+> and the signing config points at the debug keystore.
 
 ---
 
@@ -152,7 +155,9 @@ jobs:
 
 ### Signing
 
-Release builds require a signing config. For development, use the debug keystore:
+The current release build reuses the debug keystore. This is convenient for local
+testing but is **not** suitable for publishing. Replace it with a proper release
+keystore before distributing the app:
 
 ```kotlin
 // app/build.gradle.kts
@@ -166,7 +171,8 @@ buildTypes {
 
 ### ProGuard
 
-ProGuard rules are in `app/proguard-rules.pro`. Enable minification:
+ProGuard rules are in `app/proguard-rules.pro`. Minification is currently disabled
+(`isMinifyEnabled = false`). The following is an optional configuration to enable it:
 
 ```kotlin
 buildTypes {

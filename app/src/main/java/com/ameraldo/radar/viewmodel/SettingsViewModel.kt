@@ -77,7 +77,7 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
             DistanceUnits.METRIC.maxRangeOptions
         )
 
-    /** Whether adaptive following is enabled (scans all remaining points vs single-point check) */
+    /** Whether adaptive following is enabled (skip to the first matching point vs single-point check) */
     val adaptiveFollowing: StateFlow<Boolean> = appSettings.adaptiveFollowing
         .stateIn(
             viewModelScope,
@@ -198,9 +198,9 @@ class SettingsViewModel(private val appSettings: AppSettings) : ViewModel() {
     /**
      * Updates the adaptive following preference.
      *
-     * When enabled, the following algorithm scans all remaining waypoints
-     * and skips ahead to the furthest point within the configured following distance.
-     * When disabled, only the single nearest waypoint is checked (strict mode).
+     * When enabled, the following algorithm scans the remaining waypoints and
+     * skips to the first point within the configured following distance.
+     * When disabled, only the single next waypoint is checked (strict mode).
      *
      * @param enabled True to enable adaptive following, false for strict mode
      */

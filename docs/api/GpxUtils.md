@@ -60,7 +60,8 @@ Generates a complete GPX 1.1 document from a route and its recorded points.
 - Timestamps are in ISO 8601 format (UTC)
 - Elevation (`<ele>`) is included when GPS provides altitude data, omitted otherwise
 - Route names are XML-escaped to prevent invalid characters
-- Points are output in `sequenceNumber` order
+- Points are written in the order supplied. `RouteViewModel` supplies them from
+  `getPointsForRoute()`, which orders by `sequenceNumber`.
 
 ## Private Members
 

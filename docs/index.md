@@ -29,8 +29,10 @@ Designed for outdoor use where traditional navigation (Google/Apple Maps) is una
 |--------|-------|
 | **Minimum SDK** | 35 (Android 15) |
 | **Target SDK** | 36 (Android 16) |
-| **Language** | Kotlin |
-| **Build System** | Gradle with Kotlin DSL |
+| **Compile SDK** | 36.1 (API 36, minor level 1) |
+| **Language** | Kotlin 2.3.21 |
+| **Build System** | Gradle 9.3.1 with Kotlin DSL |
+| **Android Gradle Plugin** | 9.1.1 |
 | **Architecture** | MVVM with Manual Dependency Injection |
 | **UI Framework** | Jetpack Compose |
 | **Database** | Room |
@@ -111,10 +113,10 @@ Radar/
 
 ### Screens
 
-- [Home Screen](screens/home.md) - Recording controls, satellite info
-- [Radar Screen](screens/radar.md) - Map visualization, navigation
-- [Routes Screen](screens/routes.md) - Saved routes management
-- [Settings Screen](screens/settings.md) - App configuration
+- [Home Screen](screens/home.md) - Radar, satellite summary, and recording control
+- [Radar Screen](screens/radar.md) - Recording/following radar and controls
+- [Routes Screen](screens/routes.md) - Saved routes and GPX export
+- [Settings Screen](screens/settings.md) - Units, range, distances, and adaptive following
 
 ### Guides
 

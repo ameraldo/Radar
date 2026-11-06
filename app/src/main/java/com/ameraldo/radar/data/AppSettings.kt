@@ -175,7 +175,8 @@ class AppSettings(private val context: Context) {
     /**
      * Updates the adaptive following preference.
      *
-     * @param enabled True to enable adaptive following (skip ahead), false for strict single-point check
+     * @param enabled True to enable adaptive following (skip to the first matching point),
+     *                false for the strict single-point check
      */
     suspend fun setAdaptiveFollowing(enabled: Boolean) {
         context.dataStore.edit { prefs ->

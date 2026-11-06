@@ -141,6 +141,9 @@ private fun RoutesListItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // TODO(routes-live-count): pointCount is only finalized when recording stops,
+                //  so in-progress routes show 0 points. Add a live point count or a
+                //  "Recording…" label while recording.
                 Text(
                     text = "${route.pointCount} points",
                     style = MaterialTheme.typography.bodySmall,
