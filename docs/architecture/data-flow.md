@@ -102,23 +102,22 @@ sequenceDiagram
     Service->>Service: Stop following if active
     Service->>Service: _isRecording = true
     Service->>Notif: startForeground("Recording route")
-    Service->>Service: generateRouteNameAndSave() (launches coroutine)
-    Service->>Service: startLocationUpdates() (immediately)
-    Note over Service,Room: Async coroutine
+    Service->>Service: generateRouteNameAndSave() (awaited coroutine)
+    Note over Service,Room: Route is created and _currentRouteId is assigned
     Service->>Room: insertRoute(RouteEntity)
     Room-->>Service: routeId
     Service->>Service: _currentRouteId = routeId
     Service->>State: setRecordingState(true, routeId, routeName)
     Service->>Service: Insert first point if a fix is already available
+    Service->>Service: startLocationUpdates() (after route creation)
 ```
 
-> **Known limitation — possible `routeId = null` point:** `generateRouteNameAndSave()`
-> runs asynchronously, and `startLocationUpdates()` is called immediately after it is
-> launched. A location callback can therefore arrive before `_currentRouteId` has been
-> assigned. `handleRecordingLocationUpdate()` then inserts a `RecordedPointEntity` with
-> `routeId = null`. Because `routeId` is nullable, the insert succeeds, but the point is
-> not returned by `getPointsForRoute(routeId)`, is not included in `pointCount`, and is
-> not exported to GPX. A code comment marks this for a future fix.
+> **Route creation ordering:** `generateRouteNameAndSave()` now runs (and assigns
+> `_currentRouteId`) before `startLocationUpdates()` is called, so a location callback
+> can no longer arrive before the route ID exists. Points are therefore always
+> inserted with a valid `routeId`; the orphan-point case described above no longer
+> occurs in the recording flow. `RecordedPointEntity.routeId` remains nullable in the
+> schema for backward compatibility, but new recordings never produce orphan points.
 
 ## Route Following Flow
 

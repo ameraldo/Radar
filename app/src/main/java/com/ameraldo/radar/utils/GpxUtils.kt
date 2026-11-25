@@ -19,6 +19,10 @@ import java.util.TimeZone
  * @return GPX 1.1 XML string
  */
 fun generateGpx(route: RouteEntity, points: List<RecordedPointEntity>): String {
+    // SimpleDateFormat is not thread-safe, so create a fresh instance per call.
+    val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
     val metadataTime = isoFormat.format(Date(route.startTime))
     val name = escapeXml(route.name)
     return buildString {
@@ -42,11 +46,6 @@ fun generateGpx(route: RouteEntity, points: List<RecordedPointEntity>): String {
         appendLine("  </trk>")
         appendLine("</gpx>")
     }
-}
-
-/** ISO 8601 date formatter for GPX timestamps (UTC). */
-private val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply {
-    timeZone = TimeZone.getTimeZone("UTC")
 }
 
 /**

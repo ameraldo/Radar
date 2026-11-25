@@ -112,6 +112,7 @@ class LocationService : Service() {
      *   configured following distance
      * - false: strict mode, only check the single next point
      */
+    @Volatile
     private var adaptiveFollowingEnabled = false
 
     /**
@@ -481,15 +482,14 @@ class LocationService : Service() {
             startForeground(NOTIFICATION_ID, buildNotification("Recording route"))
 
             // Restore sync tracking from existing points
-            coroutineScope.launch {
-                val existingPoints = routeDao.getPointsForRoute(recordingRouteId).first()
-                if (existingPoints.isNotEmpty()) {
-                    val lastPoint = existingPoints.last()
-                    lastRecordedLat = lastPoint.latitude
-                    lastRecordedLon = lastPoint.longitude
-                    sequenceCounter = existingPoints.size
-                }
+            val existingPoints = routeDao.getPointsForRoute(recordingRouteId).first()
+            if (existingPoints.isNotEmpty()) {
+                val lastPoint = existingPoints.last()
+                lastRecordedLat = lastPoint.latitude
+                lastRecordedLon = lastPoint.longitude
+                sequenceCounter = existingPoints.size
             }
+            startLocationUpdates()
         }
 
         if (isFollowing && followingRouteId != null) {
@@ -497,6 +497,7 @@ class LocationService : Service() {
             _currentRouteId.value = followingRouteId
             loadRouteForFollowing(followingRouteId)
             startForeground(NOTIFICATION_ID, buildNotification("Following route"))
+            startLocationUpdates()
         }
 
         // If neither recording nor following, and no bound clients, stop
@@ -527,11 +528,17 @@ class LocationService : Service() {
             stopSelf()
             return
         }
-        // NOTE: generateRouteNameAndSave() launches a coroutine, and startLocationUpdates()
-        // is called immediately afterwards. A location callback can therefore arrive before
-        // _currentRouteId has been assigned. See the TODO in handleRecordingLocationUpdate().
-        generateRouteNameAndSave(routeName)
-        startLocationUpdates()
+        // Create the route (and its first point) before accepting location updates so
+        // that _currentRouteId is never null when a callback arrives.
+        coroutineScope.launch {
+            try {
+                generateRouteNameAndSave(routeName)
+                startLocationUpdates()
+            } catch (e: Exception) {
+                Log.e("LocationService", "Failed to start recording", e)
+                stopSelf()
+            }
+        }
     }
     /**
      * Stops route recording.
@@ -586,8 +593,13 @@ class LocationService : Service() {
                 stopSelf()
                 return
             }
-            loadRouteForFollowing(routeId)
-            startLocationUpdates()
+            // Load the route points before accepting location updates so that
+            // handleFollowingLocationUpdate() never sees an empty remaining list
+            // on the first callback (which would immediately abort following).
+            coroutineScope.launch {
+                loadRouteForFollowing(routeId)
+                startLocationUpdates()
+            }
             coroutineScope.launch { serviceState.setFollowingState(true, routeId) }
         } else {
             stopSelf()
@@ -623,44 +635,42 @@ class LocationService : Service() {
      *
      * @param baseRouteName User-provided name, or blank to use auto-generated name
      */
-    private fun generateRouteNameAndSave(baseRouteName: String) {
-        coroutineScope.launch {
-            try {
-                val timestamp = System.currentTimeMillis()
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                val routeName = baseRouteName.ifBlank { "(In Progress) Route ${dateFormat.format(Date(timestamp))}" }
+    private suspend fun generateRouteNameAndSave(baseRouteName: String) {
+        try {
+            val timestamp = System.currentTimeMillis()
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            val routeName = baseRouteName.ifBlank { "(In Progress) Route ${dateFormat.format(Date(timestamp))}" }
 
-                val newRoute = RouteEntity(
-                    name = routeName,
-                    startTime = timestamp
+            val newRoute = RouteEntity(
+                name = routeName,
+                startTime = timestamp
+            )
+
+            _currentRouteId.value = routeDao.insertRoute(newRoute)
+            _currentRouteName.value = routeName
+
+            serviceState.setRecordingState(true, _currentRouteId.value, routeName)
+
+            val state = _locationState.value
+            if (state.latitude != null && state.longitude != null) {
+                val point = RecordedPointEntity(
+                    routeId = _currentRouteId.value,
+                    latitude = state.latitude,
+                    longitude = state.longitude,
+                    elevation = null, // init as null
+                    timestamp = System.currentTimeMillis(),
+                    sequenceNumber = 0
                 )
-
-                _currentRouteId.value = routeDao.insertRoute(newRoute)
-                _currentRouteName.value = routeName
-
-                serviceState.setRecordingState(true, _currentRouteId.value, routeName)
-
-                val state = _locationState.value
-                if (state.latitude != null && state.longitude != null) {
-                    val point = RecordedPointEntity(
-                        routeId = _currentRouteId.value,
-                        latitude = state.latitude,
-                        longitude = state.longitude,
-                        elevation = null, // init as null
-                        timestamp = System.currentTimeMillis(),
-                        sequenceNumber = 0
-                    )
-                    // Insert point (async operation)
-                    routeDao.insertPoints(listOf(point))
-                    // Initialize sync location tracking
-                    lastRecordedLat = state.latitude
-                    lastRecordedLon = state.longitude
-                    sequenceCounter = 1
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                stopSelf()
+                // Insert point (async operation)
+                routeDao.insertPoints(listOf(point))
+                // Initialize sync location tracking
+                lastRecordedLat = state.latitude
+                lastRecordedLon = state.longitude
+                sequenceCounter = 1
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            stopSelf()
         }
     }
     /**
@@ -688,12 +698,10 @@ class LocationService : Service() {
      *
      * @param routeId ID of the route to load
      */
-    private fun loadRouteForFollowing(routeId: Long) {
-        coroutineScope.launch {
-            val points = routeDao.getPointsForRoute(routeId).first()
-            if (points.isNotEmpty()) {
-                _followingRemainingPoints.value = points.reversed()
-            }
+    private suspend fun loadRouteForFollowing(routeId: Long) {
+        val points = routeDao.getPointsForRoute(routeId).first()
+        if (points.isNotEmpty()) {
+            _followingRemainingPoints.value = points.reversed()
         }
     }
     /**

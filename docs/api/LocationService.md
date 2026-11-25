@@ -94,6 +94,19 @@ _locationService?.stopFollowingViaBinder()
     ?: context.startService(LocationService.createStopFollowingIntent(context))
 ```
 
+## State Restoration
+
+When the service is recreated by the system (for example after being killed under
+memory pressure), `restoreStateIfNeeded()` runs from `onStartCommand()` and:
+
+- Restores recording/following flags, route IDs, names, and (for recording) the
+  last recorded coordinates and sequence counter.
+- For following, reloads the saved route's points into `_followingRemainingPoints`
+  (in reverse order) before accepting location updates.
+- Restarts location and GNSS updates so tracking continues.
+- Stops the service if neither recording nor following is active and no clients
+  are bound.
+
 ## Related Documentation
 
 - [Data Flow](../architecture/data-flow.md) - How location flows through the app

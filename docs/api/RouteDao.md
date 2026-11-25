@@ -42,12 +42,13 @@ For detailed API documentation, see the KDoc comments in:
 There is no point update or point-by-ID query. Points are inserted in batches, read
 as a route-ordered `Flow`, or deleted with their route.
 
-## Orphaned Points
+## Nullable `routeId`
 
-`RecordedPointEntity.routeId` is nullable. If a point is inserted before the route ID
-has been assigned, it is stored with `routeId = null` and is not reachable through
-`getPointsForRoute()`. See [Data Flow](../architecture/data-flow.md) for the recording
-sequence that can produce this situation.
+`RecordedPointEntity.routeId` remains nullable in the schema for backward
+compatibility, but the recording flow now creates the route (and assigns its ID)
+before location updates are accepted, so new recordings never produce points with
+`routeId = null`. A point with `routeId = null` is not reachable through
+`getPointsForRoute()` and is excluded from point counts and GPX export.
 
 ## Related Documentation
 
